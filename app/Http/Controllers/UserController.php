@@ -37,6 +37,7 @@ class UserController extends Controller
             'token_type' => 'Bearer',
         ]);
     }
+
     public function login(Request $request)
     {
 
@@ -52,5 +53,14 @@ class UserController extends Controller
             'access_token' => $token,
             'token_type' => 'Bearer',
         ]);
+    }
+
+    public function logout(Request $request)
+    {
+        if ($request->user()) {
+            $request->user()->currentAccessToken()->delete();
+            return response()->json(['message' => 'Logged Out Successfully']);
+        }
+        return response()->json(['message' => 'No authenticated user'], 401);
     }
 }
