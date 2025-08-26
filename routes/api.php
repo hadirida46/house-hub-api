@@ -17,3 +17,5 @@ Route::middleware('auth:sanctum')->prefix('/profile')->group(function () {
     Route::put('/update', [UserController::class, 'updateProfile']);
     Route::post('/update/password', [UserController::class, 'updatePassword']);
 });
+
+
