@@ -2,35 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RegisterUserRequest;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 
 class UserController extends Controller
 {
-    //
-    public function index()
+    public function register(RegisterUserRequest $request)
     {
-        return User::all();
-    }
-
-    public function register(Request $request)
-    {
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users',
-            'password' => 'required|string|min:8',
-        ]);
-
         $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password'])
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'password' => Hash::make($request->input('password')),
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
-
         return response()->json([
             'user' => $user,
             'access_token' => $token,
@@ -44,10 +33,11 @@ class UserController extends Controller
             'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
+
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Invalid Credentials'], 401);
+            return response()->json(['message' => 'Invalid Credentials'], Response::HTTP_UNAUTHORIZED);
         }
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -60,7 +50,7 @@ class UserController extends Controller
 
     public function logout(Request $request)
     {
-        // THis Function Deletes All The Tokens That Belongs TO A User
+        // This Function Deletes All The Tokens That Belongs To A User
         $user = $request->user();
         if ($user) {
             $request->user()->tokens()->delete();
@@ -103,7 +93,9 @@ class UserController extends Controller
             'user' => $user
         ]);
     }
-    public function updatePassword(Request $request){
+
+    public function updatePassword(Request $request)
+    {
         $user = $request->user();
         $validated = $request->validate([
             'current_password' => 'required|string',
