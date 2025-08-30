@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RegisterUserRequest;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Auth\Events\Verified;
 
 class UserController extends Controller
 {
@@ -18,13 +19,13 @@ class UserController extends Controller
             'email' => $request->input('email'),
             'password' => Hash::make($request->input('password')),
         ]);
+        event(new Registered($user));
 
-        $token = $user->createToken('auth_token')->plainTextToken;
         return response()->json([
+            'message' => 'User registered. Please verify your email.',
             'user' => $user,
-            'access_token' => $token,
-            'token_type' => 'Bearer',
         ]);
+
     }
 
     public function login(Request $request)
@@ -38,6 +39,9 @@ class UserController extends Controller
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Invalid Credentials'], Response::HTTP_UNAUTHORIZED);
+        }
+        if (!$user->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Your email is not verified.'], Response::HTTP_FORBIDDEN);
         }
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -107,6 +111,30 @@ class UserController extends Controller
         $user->password = Hash::make($validated['new_password']);
         $user->save();
         return response()->json(['message' => 'Password updated successfully.'], 200);
+    }
+
+    public function sendVerificationEmail(Request $request)
+    {
+        $user = $request->user();
+        if ($user->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Email already verified.'], Response::HTTP_BAD_REQUEST);
+        }
+        $user->sendEmailVerificationNotification();
+        return response()->json(['message' => 'Email verification link sent on your inbox.'], Response::HTTP_OK);
+    }
+
+    public function verifyEmail(Request $request, $id, $hash)
+    {
+        $user = user::findOrFail($id);
+        if (!hash_equals(sha1($user->getEmailForVerification()), $hash)) {
+            return response()->json(['message' => 'Invalid verification link.'], 400);
+        }
+        if ($user->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Email already verified.'], 200);
+        }
+        $user->markEmailAsVerified();
+        event(new Verified($user));
+        return response()->json(['message' => 'Email verified successfully.'], 200);
     }
 
 }
