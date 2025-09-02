@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('house_hubs', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('name');
+            $table->string('description')->nullable();
+            $table->string('location')->nullable();
+            $table->decimal('latitude', 10, 7)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable();
             $table->timestamps();
         });
     }
