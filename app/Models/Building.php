@@ -12,8 +12,8 @@ class Building extends Model
     protected $fillable = [
         'house_hub_id',
         'name',
-        'floor',
-        'apartment',
+        'floors_count',
+        'apartments_count',
     ];
 
     public function houseHub(){

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BuildingController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\HouseHubController;
@@ -26,4 +27,9 @@ Route::get('/verify-email/{id}/{hash}', [UserController::class, 'verifyEmail'])
 Route::middleware('auth:sanctum')->prefix('/house-hub')->group(function () {
     Route::post('/store', [HouseHubController::class, 'store']);
     Route::get('/show/{id}', [HouseHubController::class, 'show']);
+});
+
+
+Route::middleware('auth:sanctum')->prefix('buildings')->group(function () {
+    Route::post('store', [BuildingController::class, 'store']);
 });

@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('house_hub_id')->constrained('house_hubs')->cascadeOnDelete();
             $table->string('name');
-            $table->integer('floor');
-            $table->integer('apartment');
+            $table->integer('floors_count');
+            $table->integer('apartments_count');
             $table->timestamps();
         });
     }

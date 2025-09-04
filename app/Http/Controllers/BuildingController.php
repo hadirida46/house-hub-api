@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreBuildingRequest;
 use App\Http\Requests\UpdateBuildingRequest;
 use App\Models\Building;
+use Illuminate\Http\Response;
 
 class BuildingController extends Controller
 {
@@ -21,7 +22,7 @@ class BuildingController extends Controller
      */
     public function create()
     {
-        
+
     }
 
     /**
@@ -29,7 +30,18 @@ class BuildingController extends Controller
      */
     public function store(StoreBuildingRequest $request)
     {
-        //
+        $building = Building::query()
+            ->create([
+                'buildings.house_hub_id' => $request->input('house_hub_id'),
+                'buildings.name' => $request->input('name'),
+                'buildings.floors_count' => $request->input('floors_count'),
+                'buildings.apartments_count' => $request->input('apartments_count'),
+            ]);
+
+        return response()->json([
+            'message' => 'Building Created Successfully',
+            'data' => $building->toArray()
+        ], Response::HTTP_CREATED);
     }
 
     /**
