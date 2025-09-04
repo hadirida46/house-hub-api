@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreHouseHubRequest;
 use App\Http\Requests\UpdateHouseHubRequest;
 use App\Models\HouseHub;
+use Illuminate\Http\Response;
+
 
 class HouseHubController extends Controller
 {
@@ -22,6 +24,7 @@ class HouseHubController extends Controller
     public function create()
     {
         //
+
     }
 
     /**
@@ -29,15 +32,26 @@ class HouseHubController extends Controller
      */
     public function store(StoreHouseHubRequest $request)
     {
-        //
+        $validatedData = $request->validated();
+        $validatedData['user_id'] = auth()->id();
+
+        $houseHub = HouseHub::create($validatedData);
+
+        return response()->json([
+            'message' => 'HouseHub Created Successfully',
+            'data' => $houseHub
+        ], Response::HTTP_CREATED);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(HouseHub $houseHub)
+    public function show($id)
     {
-        //
+        $houseHub = HouseHub::findOrFail($id);
+        return response()->json([
+           'data' => $houseHub
+        ]);
     }
 
     /**

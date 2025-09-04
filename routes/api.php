@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\HouseHubController;
 
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
@@ -18,6 +19,11 @@ Route::middleware('auth:sanctum')->prefix('/profile')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->post('/email/verification-notification', [UserController::class, 'sendVerificationEmail']);
-    Route::get('/verify-email/{id}/{hash}', [UserController::class, 'verifyEmail'])
+Route::get('/verify-email/{id}/{hash}', [UserController::class, 'verifyEmail'])
     ->middleware(['signed'])
     ->name('verification.verify');
+
+Route::middleware('auth:sanctum')->prefix('/house-hub')->group(function () {
+    Route::post('/store', [HouseHubController::class, 'store']);
+    Route::get('/show/{id}', [HouseHubController::class, 'show']);
+});
