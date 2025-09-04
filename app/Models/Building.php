@@ -16,7 +16,14 @@ class Building extends Model
         'apartments_count',
     ];
 
+    protected $guarded = [];
+
     public function houseHub(){
         return $this->belongsTo(HouseHub::class);
+    }
+
+    public function buildingResidents()
+    {
+        return $this->hasMany(BuildingResident::class);
     }
 }

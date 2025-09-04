@@ -23,10 +23,9 @@ class HouseHub extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     public function buildings()
     {
         return $this->hasMany(Building::class);
     }
-
-
 }
