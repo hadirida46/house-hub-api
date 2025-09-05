@@ -24,6 +24,6 @@ class Building extends Model
 
     public function buildingResidents()
     {
-        return $this->hasMany(BuildingResident::class);
+        return $this->hasMany(BuildingResident::class, 'building_id');
     }
 }

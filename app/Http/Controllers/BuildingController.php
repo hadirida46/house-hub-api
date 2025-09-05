@@ -32,10 +32,10 @@ class BuildingController extends Controller
     {
         $building = Building::query()
             ->create([
-                'buildings.house_hub_id' => $request->input('house_hub_id'),
-                'buildings.name' => $request->input('name'),
-                'buildings.floors_count' => $request->input('floors_count'),
-                'buildings.apartments_count' => $request->input('apartments_count'),
+                'house_hub_id' => $request->input('house_hub_id'),
+                'name' => $request->input('name'),
+                'floors_count' => $request->input('floors_count'),
+                'apartments_count' => $request->input('apartments_count'),
             ]);
 
         return response()->json([

@@ -14,13 +14,14 @@ class BuildingResident extends Model
         'user_id',
         'building_id',
         'is_admin',
-        'is_active',
+        'floor',
+        'apartment',
     ];
 
     public function user() {
         return $this->belongsTo(User::class);
     }
     public function building() {
-        return $this->belongsTo(Building::class);
+        return $this->belongsTo(Building::class, 'building_id');
     }
 }

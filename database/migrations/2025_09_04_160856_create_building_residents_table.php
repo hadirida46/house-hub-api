@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('building_residents', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('building_id')->constrained('buildings')->onDelete('cascade');
+            $table->boolean('is_admin')->default(false);
+            $table->integer('floor');
+            $table->char('apartment');
             $table->timestamps();
         });
     }
