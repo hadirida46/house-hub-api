@@ -2,12 +2,14 @@
 
 namespace App\Mail;
 
+use App\Models\Building;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use App\Models\User;
 
 class InviteUserMail extends Mailable
 {
@@ -15,21 +17,22 @@ class InviteUserMail extends Mailable
 
     public $user;
     public $password;
+    public $building;
+    public $floor;
+    public $apartment;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(User $user, $password)
+    public function __construct(User $user, $password, $building, $floor, $apartment)
     {
         $this->user = $user;
         $this->password = $password;
+        $this->building = $building;
+        $this->floor = $floor;
+        $this->apartment = $apartment;
     }
 
-    public function build()
-    {
-        return $this->subject('You are invited to join our Building App')
-            ->view('emails.invite_user');
-    }
 
     /**
      * Get the message envelope.
@@ -37,7 +40,7 @@ class InviteUserMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Invite User Mail',
+            subject: 'You are invited to join our Building in House Hub App',
         );
     }
 
@@ -47,7 +50,15 @@ class InviteUserMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'view.name',
+            view: 'emails.invite_user',
+            with: [
+                'name' => $this->user->name,
+                'email' => $this->user->email,
+                'password' => $this->password,
+                'building' => $this->building,
+                'floor' => $this->floor,
+                'apartment' => $this->apartment,
+            ]
         );
     }
 

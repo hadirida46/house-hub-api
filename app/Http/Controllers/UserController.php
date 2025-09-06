@@ -119,20 +119,6 @@ class UserController extends Controller
         if ($user->hasVerifiedEmail()) {
             return response()->json(['message' => 'Email already verified.'], Response::HTTP_BAD_REQUEST);
         }
-        $user->sendEmailVerificationNotification();
-        return response()->json(['message' => 'Email verification link sent on your inbox.'], Response::HTTP_OK);
-    }
-
-    public function verifyEmail(Request $request, $id, $hash)
-    {
-        $user = user::findOrFail($id);
-        if (!hash_equals(sha1($user->getEmailForVerification()), $hash)) {
-            return response()->json(['message' => 'Invalid verification link.'], 400);
-        }
-        if ($user->hasVerifiedEmail()) {
-            return response()->json(['message' => 'Email already verified.'], 200);
-        }
-        $user->markEmailAsVerified();
         event(new Verified($user));
         return response()->json(['message' => 'Email verified successfully.'], 200);
     }
