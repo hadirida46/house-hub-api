@@ -28,6 +28,7 @@ Route::get('/verify-email/{id}/{hash}', [UserController::class, 'verifyEmail'])
 Route::middleware('auth:sanctum')->prefix('/house-hub')->group(function () {
     Route::post('/store', [HouseHubController::class, 'store']);
     Route::get('/show/{id}', [HouseHubController::class, 'show']);
+    Route::delete('/destroy/{houseHub}', [HouseHubController::class, 'destroy']);
 });
 
 //buildings/1/residents

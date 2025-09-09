@@ -49,4 +49,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_admin' => 'boolean',
     ];
 
+    public function buildingResidents()
+    {
+        return $this->hasMany(BuildingResident::class);
+    }
+    public function houseHub(){
+        return $this->hasMany(HouseHub::class);
+    }
 }
