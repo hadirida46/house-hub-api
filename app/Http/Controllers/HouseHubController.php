@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreHouseHubRequest;
 use App\Http\Requests\UpdateHouseHubRequest;
+use App\Models\Building;
 use App\Models\HouseHub;
 use Illuminate\Http\Response;
 use function Pest\Laravel\json;
@@ -70,14 +71,30 @@ class HouseHubController extends Controller
      */
     public function update(UpdateHouseHubRequest $request, HouseHub $houseHub)
     {
-        //
+
+        $user = auth()->user();
+        $buildingIds = $houseHub->buildings()->pluck('id');
+        $resident = $user->buildingResidents()
+            ->whereIn('building_id', $buildingIds)
+            ->first();
+        $resident = $this->first;
+        if (!$resident || !$resident->is_admin) {
+            return response()->json([
+                'message' => 'You Are Not Authorized To Update This HouseHub'
+            ], Response::HTTP_FORBIDDEN);
+        }
+        $houseHub->update($request->validated());
+        return response()->json([
+            'message' => 'HouseHub updated successfully.',
+            'HouseHub' => $houseHub
+        ]);
     }
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(HouseHub $houseHub)
-    {    
+    {
         $user = auth()->user();
         $buildingIds = $houseHub->buildings->pluck('id');
         $this->first = $user->buildingResidents()
