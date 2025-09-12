@@ -77,7 +77,23 @@ class HouseHubController extends Controller
      */
     public function update(UpdateHouseHubRequest $request, HouseHub $houseHub)
     {
-        //
+        $userId = auth()->id();
+        $role = Role::where('house_hub_id', $houseHub->id)
+            ->where('user_id', $userId)
+            ->whereIn('name', ['owner', 'committee_member'])
+            ->first();
+
+        if (!$role) {
+            return response()->json([
+                'message' => 'You are not authorized to update this HouseHub.'
+            ], Response::HTTP_FORBIDDEN);
+        }
+        $houseHub->update($request->validated());
+        return response()->json([
+            'message' => 'HouseHub updated successfully.',
+            'house_hub' => $houseHub
+        ], Response::HTTP_OK);
+
     }
 
     /**
