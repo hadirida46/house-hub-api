@@ -23,6 +23,7 @@ class StoreHouseHubRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
+            'role' => 'required|in:owner,committee_member',
             'description' => 'nullable|string',
             'location' => 'nullable|string',
             'latitude' => 'nullable|string',

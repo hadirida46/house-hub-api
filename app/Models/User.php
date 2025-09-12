@@ -24,7 +24,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'phone',
-        'is_admin',
         'profile_picture',
     ];
 
@@ -46,14 +45,10 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-        'is_admin' => 'boolean',
     ];
 
     public function buildingResidents()
     {
         return $this->hasMany(BuildingResident::class);
-    }
-    public function houseHub(){
-        return $this->hasMany(HouseHub::class);
     }
 }
