@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreBuildingRequest;
 use App\Http\Requests\UpdateBuildingRequest;
 use App\Models\Building;
+use App\Models\HouseHub;
 use Illuminate\Http\Response;
+use App\Models\Role;
 
 class BuildingController extends Controller
 {
@@ -43,7 +45,7 @@ class BuildingController extends Controller
      */
     public function show(Building $building)
     {
-        //
+        return response()->json(['building' => $building]);
     }
 
     /**
@@ -70,6 +72,17 @@ class BuildingController extends Controller
      */
     public function destroy(Building $building)
     {
-        //
+        $userId = auth()->id();
+        $houseHub = $building->house_hub_id;;
+
+        $authorized = Role::where('house_hub_id', $houseHub)
+            ->where('user_id', $userId)
+            ->whereIn('name', ['owner', 'committee_member'])
+            ->exists();
+        if (!$authorized) {
+            return response()->json(['message' => 'Unauthorized User',], Response::HTTP_UNAUTHORIZED);
+        }
+        $building->delete();
+        return response()->json(['message' => 'Building Deleted Successfully'], Response::HTTP_OK);
     }
 }

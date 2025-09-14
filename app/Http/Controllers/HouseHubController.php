@@ -60,7 +60,13 @@ class HouseHubController extends Controller
     {
         $houseHub = HouseHub::findOrFail($id);
         return response()->json([
-            'data' => $houseHub
+            'househub' => $houseHub
+        ]);
+    }
+    public function showBuildings(HouseHub $houseHub)
+    {
+        return response()->json([
+            'buildings' => $houseHub->buildings
         ]);
     }
 
