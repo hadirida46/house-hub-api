@@ -35,5 +35,6 @@ Route::middleware('auth:sanctum')->prefix('/house-hub')->group(function () {
 //buildings/1/residents
 Route::middleware('auth:sanctum')->prefix('buildings')->group(function () {
     Route::post('/store', [BuildingController::class, 'store']);
-    Route::post('{id}/residents', [BuildingResidentController::class, 'storeResidents']);
+    Route::put('/update/{building}', [BuildingController::class, 'update']);
+//    Route::post('{id}/residents', [BuildingResidentController::class, 'storeResidents']);
 });

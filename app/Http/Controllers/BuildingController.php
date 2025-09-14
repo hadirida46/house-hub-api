@@ -30,13 +30,7 @@ class BuildingController extends Controller
      */
     public function store(StoreBuildingRequest $request)
     {
-        $building = Building::query()
-            ->create([
-                'house_hub_id' => $request->input('house_hub_id'),
-                'name' => $request->input('name'),
-                'floors_count' => $request->input('floors_count'),
-                'apartments_count' => $request->input('apartments_count'),
-            ]);
+        $building = Building::create($request->validated());
 
         return response()->json([
             'message' => 'Building Created Successfully',
@@ -65,7 +59,10 @@ class BuildingController extends Controller
      */
     public function update(UpdateBuildingRequest $request, Building $building)
     {
-        //
+        $building->update($request->validated());
+        return response()->json([
+            'message' => 'Building Updated Successfully',
+        ], Response::HTTP_OK);
     }
 
     /**
