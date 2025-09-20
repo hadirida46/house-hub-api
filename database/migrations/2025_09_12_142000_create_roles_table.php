@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('roles', function (Blueprint $table) {
             $table->id();
-            $table->enum('name', ['owner', 'janitor', 'committee_member']);
+            $table->enum('name', ['owner', 'janitor', 'committee_member', 'security']);
             $table->foreignId('house_hub_id')->constrained('house_hubs')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->timestamps();

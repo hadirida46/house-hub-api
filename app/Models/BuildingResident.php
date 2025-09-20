@@ -4,24 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
-class BuildingResident extends Model
+class BuildingResident extends model
 {
     /** @use HasFactory<\Database\Factories\BuildingResidentFactory> */
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'building_id',
-        'is_admin',
-        'floor',
-        'apartment',
+        'apartment_id',
     ];
-
     public function user() {
         return $this->belongsTo(User::class);
     }
-    public function building() {
-        return $this->belongsTo(Building::class, 'building_id');
+    public function apartment() {
+        return $this->belongsTo(apartment::class, 'apartment_id');
     }
 }

@@ -22,4 +22,7 @@ class HouseHub extends Model
     {
         return $this->hasMany(Building::class);
     }
+    public function roles(){
+        return $this->hasMany(Role::class);
+    }
 }

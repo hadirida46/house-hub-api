@@ -28,15 +28,15 @@ Route::get('/verify-email/{id}/{hash}', [UserController::class, 'verifyEmail'])
 Route::middleware('auth:sanctum')->prefix('/house-hub')->group(function () {
     Route::post('/store', [HouseHubController::class, 'store']);
     Route::get('/show/{househub}', [HouseHubController::class, 'show']);
-    Route::delete('/destroy/{houseHub}', [HouseHubController::class, 'destroy']);
     Route::put('/update/{houseHub}', [HouseHubController::class, 'update']);
     Route::get('/show/buildings/{houseHub}', [HouseHubController::class, 'showBuildings']);
+    Route::delete('/destroy/{houseHub}', [HouseHubController::class, 'destroy']);
 });
 
 //buildings/1/residents
 Route::middleware('auth:sanctum')->prefix('buildings')->group(function () {
     Route::post('/store', [BuildingController::class, 'store']);
     Route::put('/update/{building}', [BuildingController::class, 'update']);
-    Route::delete('/destroy/{building}', [BuildingController::class, 'destroy']);
     Route::get('/show/{building}', [BuildingController::class, 'show']);
+    Route::delete('/destroy/{building}', [BuildingController::class, 'destroy']);
 });

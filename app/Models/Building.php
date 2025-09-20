@@ -22,8 +22,8 @@ class Building extends Model
         return $this->belongsTo(HouseHub::class);
     }
 
-    public function buildingResidents()
+    public function apartments()
     {
-        return $this->hasMany(BuildingResident::class, 'building_id');
+        return $this->hasMany(apartment::class, 'building_id');
     }
 }
