@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreBuildingRequest;
 use App\Http\Requests\UpdateBuildingRequest;
 use App\Models\Building;
-use App\Models\HouseHub;
 use Illuminate\Http\Response;
 use App\Models\Role;
 
@@ -64,6 +63,7 @@ class BuildingController extends Controller
         $building->update($request->validated());
         return response()->json([
             'message' => 'Building Updated Successfully',
+            'building' => $building->toArray()
         ], Response::HTTP_OK);
     }
 

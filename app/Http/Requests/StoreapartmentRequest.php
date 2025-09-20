@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Models\Role;
+use App\Models\Building;
 
 class StoreapartmentRequest extends FormRequest
 {
@@ -11,7 +13,19 @@ class StoreapartmentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        $userId = $this->user()->id;
+        $buildingId = $this->input('building_id');
+        $building = Building::find($buildingId);
+
+        if (!$building || !$building->house_hub_id) {
+            return false;
+        }
+        $househubId = $building->house_hub_id;
+
+        return Role::where('house_hub_id', $househubId)
+            ->where('user_id', $userId)
+            ->whereIn('name', ['owner', 'committee_member'])
+            ->exists();
     }
 
     /**
@@ -22,7 +36,10 @@ class StoreapartmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'email' => 'required|email|exists:users,email',
+            'building_id' => 'required|integer|exists:buildings,id',
+            'name' => 'required|string|max:255',
+            'floor' => 'required|integer|min:1',
         ];
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApartmentController;
 use App\Http\Controllers\BuildingController;
 use App\Http\Controllers\BuildingResidentController;
 use Illuminate\Support\Facades\Route;
@@ -33,10 +34,13 @@ Route::middleware('auth:sanctum')->prefix('/house-hub')->group(function () {
     Route::delete('/destroy/{houseHub}', [HouseHubController::class, 'destroy']);
 });
 
-//buildings/1/residents
 Route::middleware('auth:sanctum')->prefix('buildings')->group(function () {
     Route::post('/store', [BuildingController::class, 'store']);
     Route::put('/update/{building}', [BuildingController::class, 'update']);
     Route::get('/show/{building}', [BuildingController::class, 'show']);
     Route::delete('/destroy/{building}', [BuildingController::class, 'destroy']);
+});
+
+Route::middleware('auth:sanctum')->prefix('/apartments')->group(function () {
+    Route::post('/store', [ApartmentController::class, 'store']);
 });

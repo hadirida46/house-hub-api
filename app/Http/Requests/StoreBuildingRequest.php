@@ -31,7 +31,6 @@ class StoreBuildingRequest extends FormRequest
             'house_hub_id' => 'required|integer|exists:house_hubs,id',
             'name' => 'required|string|max:255',
             'floors_count' => 'required|integer|min:1',
-            'apartments_count' => 'required|integer|min:1',
         ];
     }
 }

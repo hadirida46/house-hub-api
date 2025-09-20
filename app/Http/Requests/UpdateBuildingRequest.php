@@ -31,7 +31,6 @@ class UpdateBuildingRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'floors_count' => 'required|integer|min:1',
-            'apartments_count' => 'required|integer|min:1',
         ];
     }
 }
