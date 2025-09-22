@@ -37,23 +37,20 @@ class ApartmentController extends Controller
     public function store(StoreapartmentRequest $request)
     {
         $data = $request->validated();
-
         $building = Building::find($data['building_id']);
         $houseHubName = $building->houseHub?->name;
+
         if (!$building) {
             return response()->json([
                 'message' => 'Building not found'
             ], Response::HTTP_NOT_FOUND);
         }
-
         if ($data['floor'] > $building->floors_count) {
             return response()->json([
                 'message' => 'Floor limit exceeded'
             ], Response::HTTP_BAD_REQUEST);
         }
-
         $user = User::where('email', $data['email'])->first();
-
         if (!$user) {
             $password = Str::random(10);
             $user = User::create([
@@ -61,33 +58,17 @@ class ApartmentController extends Controller
                 'email' => $data['email'],
                 'password' => Hash::make($password),
             ]);
-
-            Mail::to($user->email)->send(
-                new InviteUserMail(
-                    $user,
-                    $password,
-                    $houseHubName,
-                    $building['name'],
-                    $data['floor'],
-                    $data['name'],
-                    'You Are Invited To Be Owner Of Apartment'
-                )
-            );
-
+            Mail::to($user->email)->send(new InviteUserMail($user, $password, $houseHubName, $building['name'], $data['floor'], $data['name'], 'You Are Invited To Be Owner Of Apartment'));
             $user->sendEmailVerificationNotification();
         }
-
         $data['user_id'] = $user->id;
 
         $apartment = Apartment::create($data);
-
         return response()->json([
             'message' => 'Apartment created successfully',
             'apartment' => $apartment
         ], Response::HTTP_CREATED);
     }
-
-
     /**
      * Display the specified resource.
      */
