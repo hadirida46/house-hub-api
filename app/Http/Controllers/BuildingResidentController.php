@@ -34,8 +34,8 @@ class BuildingResidentController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($password),
             ]);
-            $user->sendEmailVerificationNotification();
             Mail::to($user->email)->send(new InviteUserMail($user, $password, $building->name, $request->floor, $request->apartment));
+            $user->sendEmailVerificationNotification();
         }
         $resident = $building->buildingResidents()->create([
             'user_id' => $user->id,

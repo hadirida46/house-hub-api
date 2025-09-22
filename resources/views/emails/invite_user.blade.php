@@ -9,7 +9,8 @@
 
 <p>You have been invited to join our <strong>Building in House Hub App</strong>.</p>
 
-<p><strong>Building:</strong> {{ $building }}<br>
+<p><strong>House Hub:</strong> {{ $houseHub }}<br>
+    <strong>Building:</strong> {{ $building }}<br>
     <strong>Floor:</strong> {{ $floor }}<br>
     <strong>Apartment:</strong> {{ $apartment }}</p>
 

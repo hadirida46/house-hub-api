@@ -17,8 +17,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::middleware('auth:sanctum')->prefix('/profile')->group(function () {
     Route::get('/', [UserController::class, 'profile']);
-    Route::put('/update', [UserController::class, 'updateProfile']);
-    Route::post('/update/password', [UserController::class, 'updatePassword']);
+    Route::patch('/update', [UserController::class, 'updateProfile']);
+    Route::patch('/update/password', [UserController::class, 'updatePassword']);
 });
 
 Route::middleware('auth:sanctum')->post('/email/verification-notification', [UserController::class, 'sendVerificationEmail']);
@@ -29,18 +29,19 @@ Route::get('/verify-email/{id}/{hash}', [UserController::class, 'verifyEmail'])
 Route::middleware('auth:sanctum')->prefix('/house-hub')->group(function () {
     Route::post('/store', [HouseHubController::class, 'store']);
     Route::get('/show/{househub}', [HouseHubController::class, 'show']);
-    Route::put('/update/{houseHub}', [HouseHubController::class, 'update']);
+    Route::patch('/update/{houseHub}', [HouseHubController::class, 'update']);
     Route::get('/show/buildings/{houseHub}', [HouseHubController::class, 'showBuildings']);
     Route::delete('/destroy/{houseHub}', [HouseHubController::class, 'destroy']);
 });
 
 Route::middleware('auth:sanctum')->prefix('buildings')->group(function () {
     Route::post('/store', [BuildingController::class, 'store']);
-    Route::put('/update/{building}', [BuildingController::class, 'update']);
+    Route::patch('/update/{building}', [BuildingController::class, 'update']);
     Route::get('/show/{building}', [BuildingController::class, 'show']);
     Route::delete('/destroy/{building}', [BuildingController::class, 'destroy']);
 });
 
 Route::middleware('auth:sanctum')->prefix('/apartments')->group(function () {
     Route::post('/store', [ApartmentController::class, 'store']);
+    Route::patch('/update/{apartment}', [ApartmentController::class, 'update']);
 });

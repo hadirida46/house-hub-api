@@ -8,6 +8,10 @@ use App\Models\apartment;
 use App\Models\Building;
 use App\Models\User;
 use Illuminate\Http\Response;
+use App\Mail\InviteUserMail;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 
 class ApartmentController extends Controller
 {
@@ -32,28 +36,57 @@ class ApartmentController extends Controller
      */
     public function store(StoreapartmentRequest $request)
     {
-        $buildingId = $request->input('building_id');
-        $building = Building::find($buildingId);
-        $floor = $request->input('floor');
-        $userId = User::where('email', $request->email)->first()->id;
+        $data = $request->validated();
 
-        if (!$userId) {
-            return response()->json(['message' => 'User not found'], 404);
-        }
-        if ($floor > $building->floors_count) {
+        $building = Building::find($data['building_id']);
+        $houseHubName = $building->houseHub?->name;
+        if (!$building) {
             return response()->json([
-                'message' => 'Floor limit exceeded'
+                'message' => 'Building not found'
             ], Response::HTTP_NOT_FOUND);
         }
-        $data = $request->validated();
-        $data['user_id'] = $userId;
+
+        if ($data['floor'] > $building->floors_count) {
+            return response()->json([
+                'message' => 'Floor limit exceeded'
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $user = User::where('email', $data['email'])->first();
+
+        if (!$user) {
+            $password = Str::random(10);
+            $user = User::create([
+                'name' => explode('@', $data['email'])[0],
+                'email' => $data['email'],
+                'password' => Hash::make($password),
+            ]);
+
+            Mail::to($user->email)->send(
+                new InviteUserMail(
+                    $user,
+                    $password,
+                    $houseHubName,
+                    $building['name'],
+                    $data['floor'],
+                    $data['name'],
+                    'You Are Invited To Be Owner Of Apartment'
+                )
+            );
+
+            $user->sendEmailVerificationNotification();
+        }
+
+        $data['user_id'] = $user->id;
 
         $apartment = Apartment::create($data);
+
         return response()->json([
-            'massage' => 'apartment created successfully',
-            'Apartment' => $apartment
+            'message' => 'Apartment created successfully',
+            'apartment' => $apartment
         ], Response::HTTP_CREATED);
     }
+
 
     /**
      * Display the specified resource.

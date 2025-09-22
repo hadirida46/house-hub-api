@@ -36,7 +36,7 @@ class StoreapartmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
             'building_id' => 'required|integer|exists:buildings,id',
             'name' => 'required|string|max:255',
             'floor' => 'required|integer|min:1',
