@@ -47,6 +47,13 @@ class BuildingController extends Controller
         return response()->json(['building' => $building]);
     }
 
+    public function showApartments(Building $building)
+    {
+        return response()->json([
+            'apartments' => $building->apartments
+        ]);
+    }
+
     /**
      * Show the form for editing the specified resource.
      */

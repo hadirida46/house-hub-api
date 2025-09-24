@@ -15,33 +15,40 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/destroy', [UserController::class, 'destroy']);
 });
 
+//                      PROFILE ROUTES
 Route::middleware('auth:sanctum')->prefix('/profile')->group(function () {
     Route::get('/', [UserController::class, 'profile']);
     Route::patch('/update', [UserController::class, 'updateProfile']);
     Route::patch('/update/password', [UserController::class, 'updatePassword']);
 });
 
+//                      VERIFICATION ROUTES
 Route::middleware('auth:sanctum')->post('/email/verification-notification', [UserController::class, 'sendVerificationEmail']);
 Route::get('/verify-email/{id}/{hash}', [UserController::class, 'verifyEmail'])
     ->middleware(['signed'])
     ->name('verification.verify');
 
+//                      HOUSE-HUB ROUTES
 Route::middleware('auth:sanctum')->prefix('/house-hub')->group(function () {
     Route::post('/store', [HouseHubController::class, 'store']);
-    Route::get('/show/{househub}', [HouseHubController::class, 'show']);
     Route::patch('/update/{houseHub}', [HouseHubController::class, 'update']);
+    Route::get('/show/{househub}', [HouseHubController::class, 'show']);
     Route::get('/show/buildings/{houseHub}', [HouseHubController::class, 'showBuildings']);
     Route::delete('/destroy/{houseHub}', [HouseHubController::class, 'destroy']);
 });
 
+//                      BUILDING ROUTES
 Route::middleware('auth:sanctum')->prefix('buildings')->group(function () {
     Route::post('/store', [BuildingController::class, 'store']);
     Route::patch('/update/{building}', [BuildingController::class, 'update']);
     Route::get('/show/{building}', [BuildingController::class, 'show']);
+    Route::get('/show/apartments/{building}', [BuildingController::class, 'showApartments']);
     Route::delete('/destroy/{building}', [BuildingController::class, 'destroy']);
 });
-
+//                      APARTMENT ROUTES
 Route::middleware('auth:sanctum')->prefix('/apartments')->group(function () {
     Route::post('/store', [ApartmentController::class, 'store']);
     Route::patch('/update/{apartment}', [ApartmentController::class, 'update']);
+    Route::get('/show/{apartment}', [ApartmentController::class, 'show']);
+    Route::delete('/destroy/{apartment}', [ApartmentController::class, 'destroy']);
 });
