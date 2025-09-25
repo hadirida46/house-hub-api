@@ -26,3 +26,4 @@ class Apartment extends Model
         return $this->hasMany(BuildingResident::class);
     }
 }
+
