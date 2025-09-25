@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreapartmentRequest;
 use App\Http\Requests\UpdateapartmentRequest;
-use App\Models\apartment;
+use App\Models\Apartment;
 use App\Models\Building;
 use App\Models\User;
 use App\Models\Role;
@@ -75,6 +75,12 @@ class ApartmentController extends Controller
         return response()->json(['apartment' => $apartment]);
     }
 
+    public function showResidents(apartment $apartment)
+    {
+        return response()->json([
+            'residents' => $apartment->BuildingResident
+        ]);
+    }
     /**
      * Show the form for editing the specified resource.
      */

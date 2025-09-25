@@ -50,5 +50,12 @@ Route::middleware('auth:sanctum')->prefix('/apartments')->group(function () {
     Route::post('/store', [ApartmentController::class, 'store']);
     Route::patch('/update/{apartment}', [ApartmentController::class, 'update']);
     Route::get('/show/{apartment}', [ApartmentController::class, 'show']);
+    Route::get('/show/residents/{apartment}', [ApartmentController::class, 'showResidents']);
     Route::delete('/destroy/{apartment}', [ApartmentController::class, 'destroy']);
+});
+//                      RESIDENTS ROUTES
+Route::middleware('auth:sanctum')->prefix('/residents')->group(function () {
+    Route::post('/store', [BuildingResidentController::class, 'store']);
+    Route::get('/show/{resident}', [BuildingResidentController::class, 'show']);
+    Route::delete('/destroy/{resident}', [BuildingResidentController::class, 'destroy']);
 });
