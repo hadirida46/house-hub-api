@@ -3,6 +3,7 @@
 use App\Http\Controllers\ApartmentController;
 use App\Http\Controllers\BuildingController;
 use App\Http\Controllers\BuildingResidentController;
+use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\HouseHubController;
@@ -27,6 +28,7 @@ Route::middleware('auth:sanctum')->post('/email/verification-notification', [Use
 Route::get('/verify-email/{id}/{hash}', [UserController::class, 'verifyEmail'])
     ->middleware(['signed'])
     ->name('verification.verify');
+Route::get('/accept-invite', [RoleController::class, 'acceptRole'])->name('accept-invite');
 
 //                      HOUSE-HUB ROUTES
 Route::middleware('auth:sanctum')->prefix('/house-hub')->group(function () {
@@ -45,6 +47,7 @@ Route::middleware('auth:sanctum')->prefix('buildings')->group(function () {
     Route::get('/show/apartments/{building}', [BuildingController::class, 'showApartments']);
     Route::delete('/destroy/{building}', [BuildingController::class, 'destroy']);
 });
+
 //                      APARTMENT ROUTES
 Route::middleware('auth:sanctum')->prefix('/apartments')->group(function () {
     Route::post('/store', [ApartmentController::class, 'store']);
@@ -53,9 +56,18 @@ Route::middleware('auth:sanctum')->prefix('/apartments')->group(function () {
     Route::get('/show/residents/{apartment}', [ApartmentController::class, 'showResidents']);
     Route::delete('/destroy/{apartment}', [ApartmentController::class, 'destroy']);
 });
+
 //                      RESIDENTS ROUTES
 Route::middleware('auth:sanctum')->prefix('/residents')->group(function () {
     Route::post('/store', [BuildingResidentController::class, 'store']);
     Route::get('/show/{resident}', [BuildingResidentController::class, 'show']);
     Route::delete('/destroy/{resident}', [BuildingResidentController::class, 'destroy']);
+});
+
+
+//                      ROLES ROUTES
+Route::middleware('auth:sanctum')->prefix('/roles')->group(function () {
+    Route::post('/store', [RoleController::class, 'store']);
+    Route::get('/show/{househub_id}', [RoleController::class, 'showRoles']);
+    Route::delete('/destroy/{role}', [RoleController::class, 'destroyRole']);
 });

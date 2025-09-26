@@ -2,12 +2,11 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Models\HouseHub;
 use App\Models\Role;
-use App\Models\Apartment;
-use App\Models\Building;
+use Illuminate\Foundation\Http\FormRequest;
 
-class StoreResidentRequest extends FormRequest
+class DestroyRoleRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -15,19 +14,13 @@ class StoreResidentRequest extends FormRequest
     public function authorize(): bool
     {
         $userId = $this->user()->id;
-        $apartmentId = $this->input('apartment_id');
-        $apartment = Apartment::find($apartmentId);
-
-        if ($apartment->user_id === $userId) {
-            return true;
-        }
-        $building = $apartment->building;
-        if (!$building || !$building->house_hub_id) {
+        $roleId = $this->route('role');
+        $househubId = Role::where('id', $roleId)->first()->house_hub_id;
+        $househub = Househub::find($househubId);
+        if(!$househub){
             return false;
         }
-        $houseHubId = $building->house_hub_id;
-
-        return Role::where('house_hub_id', $houseHubId)
+        return Role::where('house_hub_id', $househubId)
             ->where('user_id', $userId)
             ->whereIn('name', ['owner', 'committee_member'])
             ->exists();
@@ -41,8 +34,7 @@ class StoreResidentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email',
-            'apartment_id' => 'required|exists:apartments,id',
+            //
         ];
     }
 }
