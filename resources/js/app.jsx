@@ -1,8 +1,6 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import Router from "./router/index.jsx";
+import "../css/app.css";
 
-function App() {
-    return <h1>Hello from React in Laravel 🎉</h1>;
-}
-
-ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+ReactDOM.createRoot(document.getElementById("app")).render(<Router />);

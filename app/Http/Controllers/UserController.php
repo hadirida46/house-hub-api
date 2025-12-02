@@ -20,9 +20,11 @@ class UserController extends Controller
             'password' => Hash::make($request->input('password')),
         ]);
         event(new Registered($user));
-
+        $token = $user->createToken('auth_token')->plainTextToken;
         return response()->json([
             'message' => 'User registered. Please verify your email.',
+            'access_token' => $token,
+            'token_type' => 'Bearer',
             'user' => $user,
         ]);
 
@@ -39,9 +41,6 @@ class UserController extends Controller
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Invalid Credentials'], Response::HTTP_UNAUTHORIZED);
-        }
-        if (!$user->hasVerifiedEmail()) {
-            return response()->json(['message' => 'Your email is not verified.'], Response::HTTP_FORBIDDEN);
         }
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -73,8 +72,20 @@ class UserController extends Controller
 
     public function profile(Request $request)
     {
-        return response()->json($request->user());
+        $user = $request->user();
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'phone' => $user->phone,
+            'email' => $user->email,
+            'is_admin' => $user->is_admin,
+            'profile_picture' => $user->profile_picture ? asset('storage/profile_pictures/' . $user->profile_picture) : null,
+            'email_verified_at' => $user->email_verified_at,
+            'created_at' => $user->created_at,
+            'updated_at' => $user->updated_at,
+        ]);
     }
+
 
     public function updateProfile(Request $request)
     {
@@ -83,7 +94,8 @@ class UserController extends Controller
             'name' => 'sometimes|string|max:255',
             'phone' => 'nullable|string|max:20',
             'email' => ['sometimes', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users')->ignore($user->id)],
-            'profile_picture' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'delete_picture' => 'nullable|boolean',
         ]);
         if ($request->hasFile('profile_picture')) {
             $file = $request->file('profile_picture');
@@ -91,10 +103,37 @@ class UserController extends Controller
             $file->storeAs('profile_pictures', $filename, 'public');
             $validated['profile_picture'] = $filename;
         }
-        $user->update($validated);
+
+        if ($request->has('delete_picture') && filter_var($request->delete_picture, FILTER_VALIDATE_BOOLEAN)) {
+            if ($user->profile_picture) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete('profile_pictures/' . $user->profile_picture);
+            }
+            $validated['profile_picture'] = null;
+        }
+        if (isset($validated['email']) && $validated['email'] !== $user->email) {
+            $user->email_verified_at = null;
+            $validated['email_verified_at'] = null;
+            $user->update($validated);
+            $user->sendEmailVerificationNotification();
+        } else {
+            $user->update($validated);
+        }
+        $user->refresh();
         return response()->json([
             'message' => 'Profile updated successfully.',
-            'user' => $user
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'phone' => $user->phone,
+                'email' => $user->email,
+                'is_admin' => $user->is_admin,
+                'profile_picture' => $user->profile_picture
+                    ? asset('storage/profile_pictures/' . $user->profile_picture)
+                    : null,
+                'email_verified_at' => $user->email_verified_at,
+                'created_at' => $user->created_at,
+                'updated_at' => $user->updated_at,
+            ]
         ]);
     }
 
@@ -103,12 +142,18 @@ class UserController extends Controller
         $user = $request->user();
         $validated = $request->validate([
             'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:8|confirmed',
         ]);
+
         if (!Hash::check($validated['current_password'], $user->password)) {
-            return response()->json(['message' => 'Invalid Credentials'], 403);
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => [
+                    'current_password' => ['The current password field is incorrect.'],
+                ]
+            ], 422);
         }
-        $user->password = Hash::make($validated['new_password']);
+        $user->password = Hash::make($validated['password']);
         $user->save();
         return response()->json(['message' => 'Password updated successfully.'], 200);
     }

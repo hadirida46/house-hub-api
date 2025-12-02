@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>HouseHub</title>
-{{--    @viteReactRefresh--}}
-{{--    @vite(['resources/js/'])--}}
+
+    @viteReactRefresh
+    @vite('resources/js/app.jsx')
 </head>
 <body>
-<div id="root"></div>
+<div id="app"></div>
 </body>
 </html>
