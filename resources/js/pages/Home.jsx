@@ -4,11 +4,9 @@ import Navbar from "../components/Navbar";
 
 export default function Home() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    // NEW STATES to store user data for the Navbar
     const [userName, setUserName] = useState('');
     const [userEmail, setUserEmail] = useState('');
     const [userPictureUrl, setUserPictureUrl] = useState(null);
-
     const [authMode, setAuthMode] = useState(null);
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -16,28 +14,30 @@ export default function Home() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
+    const [househubs, setHousehubs] = useState([]);
 
-    // Fetch user profile on component mount to verify token and get user details
     React.useEffect(() => {
         const token = localStorage.getItem("token");
         if (token) {
             api.get("/profile", {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             })
                 .then((response) => {
-                    // Extract and store user data
                     const userData = response.data.user || response.data;
                     setUserName(userData.name || '');
                     setUserEmail(userData.email || '');
                     setUserPictureUrl(userData.profile_picture || null);
-
                     setIsAuthenticated(true);
+
+                    api.get("/househubs", {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }).then((res) => {
+                        setHousehubs(res.data.househubs || []);
+                    });
+
                     setLoading(false);
                 })
                 .catch(() => {
-                    // Token is invalid or expired
                     localStorage.removeItem("token");
                     setIsAuthenticated(false);
                     setLoading(false);
@@ -46,12 +46,6 @@ export default function Home() {
             setLoading(false);
         }
     }, []);
-
-    const househubs = [
-        { id: 1, name: "Sunrise Apartments", description: "Modern apartment building in Beirut" },
-        { id: 2, name: "Ocean View Residence", description: "Seaside building with amazing amenities" },
-        { id: 3, name: "Downtown Lofts", description: "A complex of urban living spaces" },
-    ];
 
     const cardHoverProps = {
         onMouseOver: (e) => {
@@ -88,10 +82,10 @@ export default function Home() {
     const handleLogout = () => {
         localStorage.removeItem("token");
         setIsAuthenticated(false);
-        // Clear user data on logout
         setUserName('');
         setUserEmail('');
         setUserPictureUrl(null);
+        setHousehubs([]);
     };
 
     const inputStyle = {
@@ -138,10 +132,7 @@ export default function Home() {
                 .then((res) => {
                     if (res.data.access_token) {
                         localStorage.setItem("token", res.data.access_token);
-                        // After successful signup, reload to trigger useEffect and fetch profile data
                         window.location.reload();
-                        // Note: For a real SPA, better to update states here instead of reload.
-                        // However, since Home.js doesn't manage the full app state, reloading is simpler.
                     }
                 })
                 .catch((err) => {
@@ -150,11 +141,9 @@ export default function Home() {
             return;
         }
 
-        // Login
         api.post("/login", { email, password })
             .then((response) => {
                 localStorage.setItem("token", response.data.access_token);
-                // After successful login, reload to trigger useEffect and fetch profile data
                 window.location.reload();
             })
             .catch((err) => {
@@ -164,23 +153,12 @@ export default function Home() {
 
     return (
         <div style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif", minHeight: "100vh", background: "#f9fbff" }}>
-            {/* Show loading spinner while checking auth */}
             {loading ? (
-                <div style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    minHeight: "100vh"
-                }}>
-                    <div style={{
-                        fontSize: "1.5rem",
-                        color: "#3a76f2"
-                    }}>Loading...</div>
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+                    <div style={{ fontSize: "1.5rem", color: "#3a76f2" }}>Loading...</div>
                 </div>
             ) : (
                 <>
-                    {/* Only show Navbar if authenticated.
-                        Now passing user details to the Navbar. */}
                     {isAuthenticated && (
                         <Navbar
                             onLogout={handleLogout}
@@ -218,8 +196,8 @@ export default function Home() {
                                             cursor: "pointer",
                                             boxShadow: "0 4px 10px rgba(0, 0, 0, 0.2)"
                                         }}
-                                        onMouseOver={(e) => e.currentTarget.style.background = "#ffdd47"}
-                                        onMouseOut={(e) => e.currentTarget.style.background = "#ffc107"}
+                                        onMouseOver={(e) => (e.currentTarget.style.background = "#ffdd47")}
+                                        onMouseOut={(e) => (e.currentTarget.style.background = "#ffc107")}
                                     >
                                         Start Organizing Now
                                     </button>
@@ -234,8 +212,8 @@ export default function Home() {
                                             color: "#fff",
                                             cursor: "pointer"
                                         }}
-                                        onMouseOver={(e) => e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)"}
-                                        onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
+                                        onMouseOver={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)")}
+                                        onMouseOut={(e) => (e.currentTarget.style.background = "transparent")}
                                     >
                                         Sign In
                                     </button>
@@ -319,8 +297,8 @@ export default function Home() {
                                     {error && <div style={{ color: "#721c24", fontSize: "0.9rem", background: "#f8d7da", padding: "10px", borderRadius: 6, border: "1px solid #f5c6cb" }}>✗ {error}</div>}
 
                                     <button type="submit" style={buttonStyle}
-                                            onMouseOver={(e) => e.currentTarget.style.background = "#2c5fd1"}
-                                            onMouseOut={(e) => e.currentTarget.style.background = "#3a76f2"}>
+                                            onMouseOver={(e) => (e.currentTarget.style.background = "#2c5fd1")}
+                                            onMouseOut={(e) => (e.currentTarget.style.background = "#3a76f2")}>
                                         {authMode === "signin" ? "Sign In" : "Sign Up"}
                                     </button>
 

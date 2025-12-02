@@ -14,6 +14,7 @@ Route::post('/login', [UserController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [UserController::class, 'logout']);
     Route::delete('/destroy', [UserController::class, 'destroy']);
+    Route::get('/househubs', [UserController::class, 'getUserHouseHubs']);
 });
 
 //                      PROFILE ROUTES

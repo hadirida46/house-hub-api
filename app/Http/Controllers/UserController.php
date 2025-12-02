@@ -180,5 +180,31 @@ class UserController extends Controller
         event(new Verified($user));
         return response()->json(['message' => 'Email verified successfully.'], 200);
     }
+    public function getUserHouseHubs(Request $request)
+    {
+        $user = $request->user();
+
+        $houseHubsByRoles = \App\Models\HouseHub::whereIn('id', function ($q) use ($user) {
+            $q->select('house_hub_id')
+                ->from('roles')
+                ->where('user_id', $user->id);
+        })->get();
+
+        $houseHubsByResidency = \App\Models\HouseHub::whereIn('id', function ($q) use ($user) {
+            $q->select('house_hubs.id')
+                ->from('house_hubs')
+                ->join('buildings', 'buildings.house_hub_id', '=', 'house_hubs.id')
+                ->join('apartments', 'apartments.building_id', '=', 'buildings.id')
+                ->join('building_residents', 'building_residents.apartment_id', '=', 'apartments.id')
+                ->where('building_residents.user_id', $user->id);
+        })->get();
+
+        $merged = $houseHubsByRoles->merge($houseHubsByResidency)->unique('id')->values();
+
+        return response()->json([
+            'househubs' => $merged
+        ]);
+    }
+
 
 }
