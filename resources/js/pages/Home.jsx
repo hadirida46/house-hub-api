@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import api from "../api/axios";
 import Navbar from "../components/Navbar";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -15,6 +16,7 @@ export default function Home() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
     const [househubs, setHousehubs] = useState([]);
+    const navigate = useNavigate();
 
     React.useEffect(() => {
         const token = localStorage.getItem("token");
@@ -249,7 +251,7 @@ export default function Home() {
                                     <h2 style={{ marginBottom: 20, color: "#333" }}>Welcome Back! Your HouseHubs</h2>
                                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 20 }}>
                                         {househubs.map((hub) => (
-                                            <div key={hub.id} style={cardHoverProps} onClick={() => console.log("Navigate to Hub " + hub.id)}>
+                                            <div key={hub.id} style={cardHoverProps} onClick={() => navigate(`/househub/${hub.id}`)}>
                                                 <h3 style={{ color: "#3a76f2" }}>{hub.name}</h3>
                                                 <p style={{ color: "#666" }}>{hub.description}</p>
                                             </div>

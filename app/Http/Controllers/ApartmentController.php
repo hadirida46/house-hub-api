@@ -55,8 +55,13 @@ class ApartmentController extends Controller
                 'email' => $data['email'],
                 'password' => Hash::make($password),
             ]);
-            Mail::to($user->email)->send(new InviteUserMail($user, $password, $houseHubName, $building['name'], $data['floor'], $data['name'], 'You Are Invited To Be Owner Of Apartment'));
-            $user->sendEmailVerificationNotification();
+            try {
+                Mail::to($user->email)->send(new InviteUserMail($user, $password, $houseHubName, $building['name'], $data['floor'], $data['name'], 'You Are Invited To Be Owner Of Apartment'));
+                $user->sendEmailVerificationNotification();
+            } catch (\Exception $e) {
+                // Log the error but don't fail the apartment creation
+                \Log::warning('Failed to send invitation email: ' . $e->getMessage());
+            }
         }
         $data['user_id'] = $user->id;
 
@@ -113,9 +118,14 @@ class ApartmentController extends Controller
                     'email' => $data['email'],
                     'password' => Hash::make($password),
                 ]);
-                Mail::to($user->email)->send(
-                    new InviteUserMail($user, $password, $houseHubName, $building['name'], $data['floor'] ?? $apartment->floor, $data['name'] ?? $apartment->name, 'You Are Invited To Be Owner Of Apartment'));
-                $user->sendEmailVerificationNotification();
+                try {
+                    Mail::to($user->email)->send(
+                        new InviteUserMail($user, $password, $houseHubName, $building['name'], $data['floor'] ?? $apartment->floor, $data['name'] ?? $apartment->name, 'You Are Invited To Be Owner Of Apartment'));
+                    $user->sendEmailVerificationNotification();
+                } catch (\Exception $e) {
+                    // Log the error but don't fail the apartment update
+                    \Log::warning('Failed to send invitation email: ' . $e->getMessage());
+                }
             }
             $data['user_id'] = $user->id;
         }
