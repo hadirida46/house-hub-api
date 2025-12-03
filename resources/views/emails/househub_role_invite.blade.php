@@ -1,14 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>HouseHub Invitation</title>
-</head>
-<body>
-<p>Hello,</p>
-<p>You have been invited to join <strong>{{ $houseHubName }}</strong> as a <strong>{{ $role }}</strong>.</p>
-<p>Click the link below to accept your invitation:</p>
-<p><a href="{{ $inviteLink }}">Accept Invitation</a></p>
-<p>Thank you!</p>
-</body>
-</html>
+<p>Hello {{ $userName }},</p>
+
+<p>You are invited to join <strong>{{ $houseHubName }}</strong> as <strong>{{ $role }}</strong>.</p>
+
+<p>Your login email: {{ $email }}</p>
+<p>Your temporary password: <strong>{{ $password }}</strong></p>
+
+<p>Click the link below to join:</p>
+<p><a href="{{ $inviteLink }}">Join Now</a></p>

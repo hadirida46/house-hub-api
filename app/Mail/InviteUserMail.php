@@ -43,7 +43,6 @@ class InviteUserMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-//            subject: 'You are invited to join our Building in House Hub App',
             subject: $this->subjectText,
         );
     }

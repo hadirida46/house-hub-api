@@ -28,28 +28,46 @@ class RoleController extends Controller
 
         if ($user) {
             $userId = $user->id;
-            $alreadyHasRole = Role::where('user_id', $userId)->where('house_hub_id', $househub_id)->exists();
+
+            $alreadyHasRole = Role::where('user_id', $userId)
+                ->where('house_hub_id', $househub_id)
+                ->exists();
+
             if ($alreadyHasRole) {
                 return response()->json([
                     'message' => "This user already has a role in {$houseHubName}."
                 ], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
+
+            $password = null;
+
         } else {
             $password = Str::random(10);
+
             $user = User::create([
                 'name' => explode('@', $email)[0],
                 'email' => $email,
                 'password' => Hash::make($password),
             ]);
-            $userId = $user->id;
+
             $user->sendEmailVerificationNotification();
         }
 
-        Mail::to($email)->send(new HouseHubRoleInvite($email, $role, $houseHubName, $inviteLink));
+        Mail::to($email)->send(
+            new HouseHubRoleInvite(
+                $email,
+                $role,
+                $houseHubName,
+                $inviteLink,
+                $user->name,
+                $password
+            )
+        );
         return response()->json([
             'message' => "Invitation sent!",
         ], Response::HTTP_OK);
     }
+
 
     public function acceptRole(Request $request)
     {
