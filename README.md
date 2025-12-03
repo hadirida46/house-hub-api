@@ -1,8 +1,7 @@
 HouseHub
 
-HouseHub is a full-stack web application built with Laravel and React for managing househubs, buildings, apartments, roles, and residents. It provides a secure authentication system, full email verification, and an intuitive admin interface to manage everything efficiently.
+HouseHub is a full-stack web application built with Laravel and React for managing househubs, buildings, apartments, roles, and residents. It includes secure authentication, full email verification, and an intuitive admin interface.
 
-Features
 🔐 Authentication & Security
 
 User registration, login, and logout
@@ -47,11 +46,11 @@ React SPA built with Vite
 
 Axios for API communication
 
-Uses Sanctum-protected backend endpoints
+Uses Sanctum-protected backend APIs
 
 Clean and simple UI for all CRUD actions
 
-Tech Stack
+⚙️ Tech Stack
 
 Backend: Laravel
 
