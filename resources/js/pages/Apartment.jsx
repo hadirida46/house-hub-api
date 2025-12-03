@@ -3,25 +3,23 @@ import api from "../api/axios";
 import Navbar from "../components/Navbar";
 import { useNavigate, useParams } from "react-router-dom";
 
-export default function Building() {
+export default function Apartment() {
     const { id } = useParams();
-    const [building, setBuilding] = useState(null);
-    const [apartments, setApartments] = useState([]);
+    const [apartment, setApartment] = useState(null);
+    const [residents, setResidents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userName, setUserName] = useState('');
     const [userEmail, setUserEmail] = useState('');
     const [userPictureUrl, setUserPictureUrl] = useState(null);
     const [name, setName] = useState("");
-    const [floorsCount, setFloorsCount] = useState(1);
+    const [floor, setFloor] = useState(1);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [showApartmentModal, setShowApartmentModal] = useState(false);
-    const [apartmentName, setApartmentName] = useState("");
-    const [apartmentFloor, setApartmentFloor] = useState(1);
-    const [ownerEmail, setOwnerEmail] = useState("");
-    const [creatingApartment, setCreatingApartment] = useState(false);
+    const [showResidentModal, setShowResidentModal] = useState(false);
+    const [residentEmail, setResidentEmail] = useState("");
+    const [creatingResident, setCreatingResident] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -36,54 +34,50 @@ export default function Building() {
             setUserEmail(userData.email || '');
             setUserPictureUrl(userData.profile_picture || null);
         });
-        fetchBuilding();
-        fetchApartments();
+        fetchApartment();
+        fetchResidents();
     }, []);
 
-    const fetchBuilding = async () => {
+    const fetchApartment = async () => {
         try {
-            const res = await api.get(`/buildings/show/${id}`);
-            const bldg = res.data.building || null;
-            setBuilding(bldg);
-            setName(bldg?.name || '');
-            setFloorsCount(bldg?.floors_count || 1);
+            const res = await api.get(`/apartments/show/${id}`);
+            const apt = res.data.apartment || null;
+            setApartment(apt);
+            setName(apt?.name || '');
+            setFloor(apt?.floor || 1);
         } catch (err) {
-            console.error("Error fetching building:", err);
-            setBuilding(null);
+            console.error("Error fetching apartment:", err);
+            setApartment(null);
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchApartments = async () => {
+    const fetchResidents = async () => {
         try {
-            const res = await api.get(`/buildings/show/apartments/${id}`);
-            console.log("Apartments API response:", res.data);
-            console.log("Response data type:", typeof res.data);
-            console.log("Response data.apartments:", res.data?.apartments);
+            const res = await api.get(`/apartments/show/residents/${id}`);
+            console.log("Residents API response:", res.data);
             
             // Handle different response structures
-            let apartmentsList = [];
+            let residentsList = [];
             if (Array.isArray(res.data)) {
-                apartmentsList = res.data;
-            } else if (res.data && Array.isArray(res.data.apartments)) {
-                apartmentsList = res.data.apartments;
+                residentsList = res.data;
+            } else if (res.data && Array.isArray(res.data.residents)) {
+                residentsList = res.data.residents;
             } else if (res.data && res.data.data && Array.isArray(res.data.data)) {
-                apartmentsList = res.data.data;
-            } else if (res.data && res.data.data && Array.isArray(res.data.data.apartments)) {
-                apartmentsList = res.data.data.apartments;
-            } else if (res.data && res.data.apartments && !Array.isArray(res.data.apartments)) {
-                // If apartments is an object (like a collection), convert to array
-                apartmentsList = Object.values(res.data.apartments);
+                residentsList = res.data.data;
+            } else if (res.data && res.data.data && Array.isArray(res.data.data.residents)) {
+                residentsList = res.data.data.residents;
+            } else if (res.data && res.data.residents && !Array.isArray(res.data.residents)) {
+                residentsList = Object.values(res.data.residents);
             }
             
-            console.log("Parsed apartments list:", apartmentsList);
-            console.log("Apartments count:", apartmentsList.length);
-            setApartments(apartmentsList);
+            console.log("Parsed residents list:", residentsList);
+            setResidents(residentsList);
         } catch (err) {
-            console.error("Error fetching apartments:", err);
+            console.error("Error fetching residents:", err);
             console.error("Error response:", err.response?.data);
-            setApartments([]);
+            setResidents([]);
         }
     };
 
@@ -92,22 +86,23 @@ export default function Building() {
         return emailRegex.test(email);
     };
 
-    const saveBuilding = async () => {
-        if (!name || !floorsCount || floorsCount < 1) {
-            alert("Please enter a name and a valid number of floors (at least 1).");
+    const saveApartment = async () => {
+        if (!name || !floor || floor < 1) {
+            alert("Please enter a name and a valid floor number (at least 1).");
             return;
         }
 
         setSaving(true);
         try {
-            const res = await api.patch(`/buildings/update/${id}`, {
+            const res = await api.patch(`/apartments/update/${id}`, {
                 name,
-                floors_count: parseInt(floorsCount)
+                floor: parseInt(floor),
+                building_id: apartment?.building_id
             });
-            setBuilding(res.data.building);
-            alert("Building updated successfully.");
+            setApartment(res.data.apartment);
+            alert("Apartment updated successfully.");
             setIsEditing(false);
-            fetchBuilding();
+            fetchApartment();
         } catch (err) {
             console.error(err.response?.data || err.message);
             alert(JSON.stringify(err.response?.data || err.message));
@@ -117,20 +112,19 @@ export default function Building() {
     };
 
     const handleCancelEdit = () => {
-        // Reset form to original values
-        setName(building?.name || '');
-        setFloorsCount(building?.floors_count || 1);
+        setName(apartment?.name || '');
+        setFloor(apartment?.floor || 1);
         setIsEditing(false);
     };
 
-    const deleteBuilding = async () => {
+    const deleteApartment = async () => {
         setDeleting(true);
         try {
-            await api.delete(`/buildings/destroy/${id}`);
-            alert("Building deleted successfully.");
-            // Navigate back to the HouseHub page
-            if (building?.house_hub_id) {
-                navigate(`/househub/${building.house_hub_id}`);
+            await api.delete(`/apartments/destroy/${id}`);
+            alert("Apartment deleted successfully.");
+            // Navigate back to the Building page
+            if (apartment?.building_id) {
+                navigate(`/building/${apartment.building_id}`);
             } else {
                 navigate("/dashboard");
             }
@@ -143,46 +137,50 @@ export default function Building() {
         }
     };
 
-    const createApartment = async () => {
-        if (!apartmentName || !apartmentFloor || apartmentFloor < 1 || !ownerEmail) {
-            alert("Please fill in all fields: apartment name, floor number (at least 1), and owner email.");
+    const createResident = async () => {
+        if (!residentEmail) {
+            alert("Please enter a resident email address.");
             return;
         }
 
-        if (!validateEmail(ownerEmail)) {
+        if (!validateEmail(residentEmail)) {
             alert("Please enter a valid email address (format: something@example.com).");
             return;
         }
 
-        if (apartmentFloor > building.floors_count) {
-            alert(`Floor number cannot exceed the building's total floors (${building.floors_count}).`);
-            return;
-        }
-
-        setCreatingApartment(true);
+        setCreatingResident(true);
         try {
-            const res = await api.post("/apartments/store", {
-                building_id: parseInt(id),
-                name: apartmentName,
-                floor: parseInt(apartmentFloor),
-                email: ownerEmail
+            const res = await api.post("/residents/store", {
+                apartment_id: parseInt(id),
+                email: residentEmail
             });
-            console.log("Create apartment response:", res.data);
-            setShowApartmentModal(false);
-            setApartmentName("");
-            setApartmentFloor(1);
-            setOwnerEmail("");
-            // Always refetch to ensure we have the latest data
-            await fetchApartments();
+            console.log("Create resident response:", res.data);
+            setShowResidentModal(false);
+            setResidentEmail("");
+            await fetchResidents();
         } catch (err) {
-            console.error("Error creating apartment:", err.response?.data || err.message);
+            console.error("Error creating resident:", err.response?.data || err.message);
             alert(JSON.stringify(err.response?.data || err.message));
         } finally {
-            setCreatingApartment(false);
+            setCreatingResident(false);
         }
     };
 
-    if (loading || !building) {
+    const deleteResident = async (residentId) => {
+        if (!window.confirm("Are you sure you want to remove this resident?")) {
+            return;
+        }
+        try {
+            await api.delete(`/residents/destroy/${residentId}`);
+            alert("Resident removed successfully.");
+            await fetchResidents();
+        } catch (err) {
+            console.error("Error deleting resident:", err.response?.data || err.message);
+            alert(JSON.stringify(err.response?.data || err.message));
+        }
+    };
+
+    if (loading || !apartment) {
         return (
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", fontSize: "1.5rem", color: "#3a76f2" }}>
                 Loading...
@@ -195,7 +193,7 @@ export default function Building() {
             <Navbar onLogout={() => { localStorage.removeItem("token"); window.location.href = "/"; }} userName={userName} userEmail={userEmail} profilePictureUrl={userPictureUrl} />
 
             <main style={{ padding: "24px 20px", maxWidth: "1200px", margin: "0 auto" }}>
-                {/* Building Header Card */}
+                {/* Apartment Header Card */}
                 <div style={{ 
                     background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", 
                     borderRadius: "20px", 
@@ -210,15 +208,15 @@ export default function Building() {
                     <div style={{ position: "relative", zIndex: 1 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "20px" }}>
                             <div style={{ flex: 1, minWidth: "300px" }}>
-                                <h1 style={{ margin: "0 0 12px 0", fontSize: "2.5rem", fontWeight: "700", letterSpacing: "-0.5px" }}>{building.name || "Building"}</h1>
+                                <h1 style={{ margin: "0 0 12px 0", fontSize: "2.5rem", fontWeight: "700", letterSpacing: "-0.5px" }}>{apartment.name || "Apartment"}</h1>
                                 <div style={{ display: "flex", gap: "32px", flexWrap: "wrap", marginTop: "24px" }}>
                                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                                        <span style={{ opacity: 0.85, fontSize: "0.875rem", fontWeight: "500" }}>Floors</span>
-                                        <div style={{ fontWeight: "600", fontSize: "1rem", marginTop: "2px" }}>{building.floors_count || 0}</div>
+                                        <span style={{ opacity: 0.85, fontSize: "0.875rem", fontWeight: "500" }}>Floor</span>
+                                        <div style={{ fontWeight: "600", fontSize: "1rem", marginTop: "2px" }}>{apartment.floor || 0}</div>
                                     </div>
                                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                                        <span style={{ opacity: 0.85, fontSize: "0.875rem", fontWeight: "500" }}>Apartments</span>
-                                        <div style={{ fontWeight: "600", fontSize: "1rem", marginTop: "2px" }}>{apartments.length}</div>
+                                        <span style={{ opacity: 0.85, fontSize: "0.875rem", fontWeight: "500" }}>Residents</span>
+                                        <div style={{ fontWeight: "600", fontSize: "1rem", marginTop: "2px" }}>{residents.length}</div>
                                     </div>
                                 </div>
                             </div>
@@ -227,7 +225,7 @@ export default function Building() {
                                     <div style={{ display: "flex", gap: "12px", alignItems: "center", background: "rgba(255,255,255,0.15)", padding: "12px 16px", borderRadius: "12px", backdropFilter: "blur(10px)" }}>
                                         <span style={{ fontSize: "0.875rem", fontWeight: "500" }}>Confirm delete?</span>
                                         <button 
-                                            onClick={deleteBuilding}
+                                            onClick={deleteApartment}
                                             disabled={deleting}
                                             style={{ 
                                                 padding: "8px 16px", 
@@ -289,7 +287,7 @@ export default function Building() {
                                             e.currentTarget.style.transform = "translateY(0)";
                                         }}
                                     >
-                                        Delete Building
+                                        Delete Apartment
                                     </button>
                                 )}
                             </div>
@@ -308,14 +306,14 @@ export default function Building() {
                     border: "1px solid #f0f0f0"
                 }}>
                     <div style={{ marginBottom: "24px", paddingBottom: "20px", borderBottom: "2px solid #f3f4f6" }}>
-                        <h2 style={{ margin: 0, color: "#1f2937", fontSize: "1.75rem", fontWeight: "700", letterSpacing: "-0.3px" }}>Building Details</h2>
-                        <p style={{ margin: "8px 0 0 0", color: "#6b7280", fontSize: "0.9375rem" }}>Manage your building information and settings</p>
+                        <h2 style={{ margin: 0, color: "#1f2937", fontSize: "1.75rem", fontWeight: "700", letterSpacing: "-0.3px" }}>Apartment Details</h2>
+                        <p style={{ margin: "8px 0 0 0", color: "#6b7280", fontSize: "0.9375rem" }}>Manage your apartment information and settings</p>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                         <div>
                             <label style={{ display: "block", marginBottom: "10px", color: "#374151", fontWeight: "600", fontSize: "0.9375rem" }}>Name</label>
                             <input 
-                                placeholder="Building Name" 
+                                placeholder="Apartment Name" 
                                 value={name} 
                                 onChange={e => setName(e.target.value)} 
                                 disabled={!isEditing}
@@ -337,13 +335,13 @@ export default function Building() {
                             />
                         </div>
                         <div>
-                            <label style={{ display: "block", marginBottom: "10px", color: "#374151", fontWeight: "600", fontSize: "0.9375rem" }}>Number of Floors</label>
+                            <label style={{ display: "block", marginBottom: "10px", color: "#374151", fontWeight: "600", fontSize: "0.9375rem" }}>Floor Number</label>
                             <input 
                                 type="number"
                                 min="1"
-                                placeholder="Number of floors" 
-                                value={floorsCount} 
-                                onChange={e => setFloorsCount(parseInt(e.target.value) || 1)} 
+                                placeholder="Floor number" 
+                                value={floor} 
+                                onChange={e => setFloor(parseInt(e.target.value) || 1)} 
                                 disabled={!isEditing}
                                 style={{ 
                                     width: "100%",
@@ -365,30 +363,30 @@ export default function Building() {
                         {isEditing ? (
                             <div style={{ display: "flex", gap: "12px", marginTop: "8px", paddingTop: "20px", borderTop: "2px solid #f3f4f6" }}>
                                 <button 
-                                    onClick={saveBuilding} 
-                                    disabled={saving || !name || !floorsCount || floorsCount < 1} 
+                                    onClick={saveApartment} 
+                                    disabled={saving || !name || !floor || floor < 1} 
                                     style={{ 
                                         flex: 1,
                                         padding: "14px 28px", 
-                                        background: saving || !name || !floorsCount || floorsCount < 1 ? "#d1d5db" : "#3b82f6", 
+                                        background: saving || !name || !floor || floor < 1 ? "#d1d5db" : "#3b82f6", 
                                         color: "#fff", 
                                         border: "none", 
                                         borderRadius: "10px", 
-                                        cursor: saving || !name || !floorsCount || floorsCount < 1 ? "not-allowed" : "pointer",
+                                        cursor: saving || !name || !floor || floor < 1 ? "not-allowed" : "pointer",
                                         fontWeight: "600",
                                         fontSize: "1rem",
                                         transition: "all 0.2s",
-                                        boxShadow: saving || !name || !floorsCount || floorsCount < 1 ? "none" : "0 4px 12px rgba(59, 130, 246, 0.3)"
+                                        boxShadow: saving || !name || !floor || floor < 1 ? "none" : "0 4px 12px rgba(59, 130, 246, 0.3)"
                                     }}
                                     onMouseEnter={(e) => {
-                                        if (!saving && name && floorsCount && floorsCount >= 1) {
+                                        if (!saving && name && floor && floor >= 1) {
                                             e.currentTarget.style.background = "#2563eb";
                                             e.currentTarget.style.transform = "translateY(-2px)";
                                             e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
                                         }
                                     }}
                                     onMouseLeave={(e) => {
-                                        if (!saving && name && floorsCount && floorsCount >= 1) {
+                                        if (!saving && name && floor && floor >= 1) {
                                             e.currentTarget.style.background = "#3b82f6";
                                             e.currentTarget.style.transform = "translateY(0)";
                                             e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
@@ -460,7 +458,7 @@ export default function Building() {
                     </div>
                 </div>
 
-                {/* Apartments Section */}
+                {/* Residents Section */}
                 <div style={{ 
                     background: "#fff", 
                     borderRadius: "16px", 
@@ -470,13 +468,13 @@ export default function Building() {
                 }}>
                     <div style={{ marginBottom: "24px", paddingBottom: "20px", borderBottom: "2px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
                         <div>
-                            <h2 style={{ margin: 0, color: "#1f2937", fontSize: "1.75rem", fontWeight: "700", letterSpacing: "-0.3px" }}>Apartments</h2>
+                            <h2 style={{ margin: 0, color: "#1f2937", fontSize: "1.75rem", fontWeight: "700", letterSpacing: "-0.3px" }}>Residents</h2>
                             <p style={{ margin: "8px 0 0 0", color: "#6b7280", fontSize: "0.9375rem" }}>
-                                {apartments.length === 0 ? "No apartments in this building" : `${apartments.length} apartment${apartments.length !== 1 ? 's' : ''} found`}
+                                {residents.length === 0 ? "No residents in this apartment" : `${residents.length} resident${residents.length !== 1 ? 's' : ''} found`}
                             </p>
                         </div>
                         <button 
-                            onClick={() => setShowApartmentModal(true)}
+                            onClick={() => setShowResidentModal(true)}
                             style={{ 
                                 padding: "12px 24px", 
                                 background: "#3b82f6", 
@@ -501,10 +499,10 @@ export default function Building() {
                                 e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
                             }}
                         >
-                            + Create Apartment
+                            + Add Resident
                         </button>
                     </div>
-                    {apartments.length === 0 ? (
+                    {residents.length === 0 ? (
                         <div style={{ 
                             padding: "60px 40px", 
                             textAlign: "center", 
@@ -513,40 +511,57 @@ export default function Building() {
                             borderRadius: "12px",
                             border: "2px dashed #e5e7eb"
                         }}>
-                            <div style={{ fontSize: "3rem", marginBottom: "16px", opacity: 0.5 }}>🏠</div>
-                            <p style={{ margin: 0, fontSize: "1.125rem", fontWeight: "500" }}>No apartments found</p>
-                            <p style={{ margin: "8px 0 0 0", fontSize: "0.9375rem", opacity: 0.8 }}>Apartments will appear here once they are added to this building</p>
+                            <div style={{ fontSize: "3rem", marginBottom: "16px", opacity: 0.5 }}>👥</div>
+                            <p style={{ margin: 0, fontSize: "1.125rem", fontWeight: "500" }}>No residents found</p>
+                            <p style={{ margin: "8px 0 0 0", fontSize: "0.9375rem", opacity: 0.8 }}>Residents will appear here once they are added to this apartment</p>
                         </div>
                     ) : (
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px" }}>
-                            {apartments.map(a => (
+                            {residents.map(r => (
                                 <div 
-                                    key={a.id} 
-                                    onClick={() => navigate(`/apartment/${a.id}`)}
+                                    key={r.id} 
                                     style={{ 
                                         padding: "24px", 
                                         background: "#f9fafb", 
                                         borderRadius: "12px", 
                                         border: "2px solid #e5e7eb",
                                         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                                        cursor: "pointer"
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = "#fff";
-                                        e.currentTarget.style.borderColor = "#3b82f6";
-                                        e.currentTarget.style.boxShadow = "0 8px 24px rgba(59, 130, 246, 0.12)";
-                                        e.currentTarget.style.transform = "translateY(-4px)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = "#f9fafb";
-                                        e.currentTarget.style.borderColor = "#e5e7eb";
-                                        e.currentTarget.style.boxShadow = "none";
-                                        e.currentTarget.style.transform = "translateY(0)";
+                                        position: "relative"
                                     }}
                                 >
-                                    <h4 style={{ margin: "0 0 12px 0", color: "#3b82f6", fontSize: "1.25rem", fontWeight: "700" }}>{a.name || `Apartment ${a.id}`}</h4>
-                                    {(a.floor || a.floor_number) && (
-                                        <p style={{ margin: "0 0 12px 0", color: "#6b7280", fontSize: "0.9375rem", lineHeight: "1.6" }}>Floor: {a.floor || a.floor_number}</p>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+                                        <h4 style={{ margin: 0, color: "#3b82f6", fontSize: "1.25rem", fontWeight: "700" }}>
+                                            {r.user?.name || r.user?.email || `Resident ${r.id}`}
+                                        </h4>
+                                        <button
+                                            onClick={() => deleteResident(r.id)}
+                                            style={{
+                                                padding: "6px 12px",
+                                                background: "#ef4444",
+                                                color: "#fff",
+                                                border: "none",
+                                                borderRadius: "6px",
+                                                cursor: "pointer",
+                                                fontWeight: "600",
+                                                fontSize: "0.8125rem",
+                                                transition: "all 0.2s"
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = "#dc2626";
+                                                e.currentTarget.style.transform = "scale(1.05)";
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = "#ef4444";
+                                                e.currentTarget.style.transform = "scale(1)";
+                                            }}
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                    {r.user?.email && (
+                                        <p style={{ margin: "0 0 8px 0", color: "#6b7280", fontSize: "0.9375rem", lineHeight: "1.6" }}>
+                                            {r.user.email}
+                                        </p>
                                     )}
                                 </div>
                             ))}
@@ -554,8 +569,8 @@ export default function Building() {
                     )}
                 </div>
 
-                {/* Create Apartment Modal */}
-                {showApartmentModal && (
+                {/* Create Resident Modal */}
+                {showResidentModal && (
                     <div style={{
                         position: "fixed",
                         top: 0,
@@ -580,10 +595,8 @@ export default function Building() {
                         }}>
                             <button 
                                 onClick={() => {
-                                    setShowApartmentModal(false);
-                                    setApartmentName("");
-                                    setApartmentFloor(1);
-                                    setOwnerEmail("");
+                                    setShowResidentModal(false);
+                                    setResidentEmail("");
                                 }}
                                 style={{ 
                                     position: "absolute", 
@@ -614,88 +627,36 @@ export default function Building() {
                                 ×
                             </button>
 
-                            <h2 style={{ marginBottom: "24px", color: "#3b82f6", fontWeight: "700", fontSize: "1.5rem" }}>Create Apartment</h2>
+                            <h2 style={{ marginBottom: "24px", color: "#3b82f6", fontWeight: "700", fontSize: "1.5rem" }}>Add Resident</h2>
 
                             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                                 <div>
-                                    <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9375rem", color: "#374151", fontWeight: "600" }}>Apartment Name *</label>
-                                    <input 
-                                        placeholder="Apartment name" 
-                                        value={apartmentName} 
-                                        onChange={(e) => setApartmentName(e.target.value)}
-                                        style={{
-                                            width: "100%",
-                                            padding: "12px 16px",
-                                            marginBottom: 0,
-                                            border: "2px solid #e5e7eb",
-                                            borderRadius: "10px",
-                                            fontSize: "1rem",
-                                            boxSizing: "border-box",
-                                            outline: "none",
-                                            transition: "all 0.2s"
-                                        }}
-                                        onFocus={(e) => e.currentTarget.style.borderColor = "#3b82f6"}
-                                        onBlur={(e) => e.currentTarget.style.borderColor = "#e5e7eb"}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9375rem", color: "#374151", fontWeight: "600" }}>
-                                        Floor Number * 
-                                        <span style={{ color: "#6b7280", fontWeight: "400", fontSize: "0.875rem", marginLeft: "8px" }}>
-                                            (Max: {building.floors_count})
-                                        </span>
-                                    </label>
-                                    <input 
-                                        type="number"
-                                        min="1"
-                                        max={building.floors_count}
-                                        placeholder="Floor number" 
-                                        value={apartmentFloor} 
-                                        onChange={(e) => setApartmentFloor(parseInt(e.target.value) || 1)}
-                                        style={{
-                                            width: "100%",
-                                            padding: "12px 16px",
-                                            marginBottom: 0,
-                                            border: "2px solid #e5e7eb",
-                                            borderRadius: "10px",
-                                            fontSize: "1rem",
-                                            boxSizing: "border-box",
-                                            outline: "none",
-                                            transition: "all 0.2s"
-                                        }}
-                                        onFocus={(e) => e.currentTarget.style.borderColor = "#3b82f6"}
-                                        onBlur={(e) => e.currentTarget.style.borderColor = "#e5e7eb"}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9375rem", color: "#374151", fontWeight: "600" }}>Owner Email *</label>
+                                    <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9375rem", color: "#374151", fontWeight: "600" }}>Resident Email *</label>
                                     <input 
                                         type="email"
-                                        placeholder="owner@example.com" 
-                                        value={ownerEmail} 
-                                        onChange={(e) => setOwnerEmail(e.target.value)}
+                                        placeholder="resident@example.com" 
+                                        value={residentEmail} 
+                                        onChange={(e) => setResidentEmail(e.target.value)}
                                         style={{
                                             width: "100%",
                                             padding: "12px 16px",
                                             marginBottom: 0,
-                                            border: ownerEmail && !validateEmail(ownerEmail) ? "2px solid #ef4444" : "2px solid #e5e7eb",
+                                            border: residentEmail && !validateEmail(residentEmail) ? "2px solid #ef4444" : "2px solid #e5e7eb",
                                             borderRadius: "10px",
                                             fontSize: "1rem",
                                             boxSizing: "border-box",
                                             outline: "none",
                                             transition: "all 0.2s"
                                         }}
-                                        onFocus={(e) => e.currentTarget.style.borderColor = ownerEmail && !validateEmail(ownerEmail) ? "#ef4444" : "#3b82f6"}
-                                        onBlur={(e) => e.currentTarget.style.borderColor = ownerEmail && !validateEmail(ownerEmail) ? "#ef4444" : "#e5e7eb"}
+                                        onFocus={(e) => e.currentTarget.style.borderColor = residentEmail && !validateEmail(residentEmail) ? "#ef4444" : "#3b82f6"}
+                                        onBlur={(e) => e.currentTarget.style.borderColor = residentEmail && !validateEmail(residentEmail) ? "#ef4444" : "#e5e7eb"}
                                     />
-                                    {ownerEmail && !validateEmail(ownerEmail) && (
+                                    {residentEmail && !validateEmail(residentEmail) && (
                                         <p style={{ margin: "8px 0 0 0", fontSize: "0.8125rem", color: "#ef4444" }}>
                                             Please enter a valid email address (format: something@example.com)
                                         </p>
                                     )}
-                                    {(!ownerEmail || validateEmail(ownerEmail)) && (
+                                    {(!residentEmail || validateEmail(residentEmail)) && (
                                         <p style={{ margin: "8px 0 0 0", fontSize: "0.8125rem", color: "#6b7280" }}>
                                             If the user doesn't exist, they will be created and receive an invitation email.
                                         </p>
@@ -704,44 +665,42 @@ export default function Building() {
 
                                 <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
                                     <button 
-                                        onClick={createApartment}
-                                        disabled={creatingApartment || !apartmentName || !apartmentFloor || apartmentFloor < 1 || apartmentFloor > building.floors_count || !ownerEmail || !validateEmail(ownerEmail)} 
+                                        onClick={createResident}
+                                        disabled={creatingResident || !residentEmail || !validateEmail(residentEmail)} 
                                         style={{
                                             flex: 1,
                                             padding: "14px 28px",
-                                            background: (!apartmentName || !apartmentFloor || apartmentFloor < 1 || apartmentFloor > building.floors_count || !ownerEmail || !validateEmail(ownerEmail)) ? "#d1d5db" : "#3b82f6",
+                                            background: (!residentEmail || !validateEmail(residentEmail)) ? "#d1d5db" : "#3b82f6",
                                             color: "#fff",
                                             border: "none",
                                             borderRadius: "10px",
-                                            cursor: creatingApartment || !apartmentName || !apartmentFloor || apartmentFloor < 1 || apartmentFloor > building.floors_count || !ownerEmail || !validateEmail(ownerEmail) ? "not-allowed" : "pointer",
+                                            cursor: creatingResident || !residentEmail || !validateEmail(residentEmail) ? "not-allowed" : "pointer",
                                             fontWeight: "600",
                                             fontSize: "1rem",
                                             transition: "all 0.2s",
-                                            boxShadow: (!apartmentName || !apartmentFloor || apartmentFloor < 1 || apartmentFloor > building.floors_count || !ownerEmail || !validateEmail(ownerEmail)) ? "none" : "0 4px 12px rgba(59, 130, 246, 0.3)"
+                                            boxShadow: (!residentEmail || !validateEmail(residentEmail)) ? "none" : "0 4px 12px rgba(59, 130, 246, 0.3)"
                                         }}
                                         onMouseEnter={(e) => {
-                                            if (!creatingApartment && apartmentName && apartmentFloor && apartmentFloor >= 1 && apartmentFloor <= building.floors_count && ownerEmail && validateEmail(ownerEmail)) {
+                                            if (!creatingResident && residentEmail && validateEmail(residentEmail)) {
                                                 e.currentTarget.style.background = "#2563eb";
                                                 e.currentTarget.style.transform = "translateY(-2px)";
                                                 e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
                                             }
                                         }}
                                         onMouseLeave={(e) => {
-                                            if (!creatingApartment && apartmentName && apartmentFloor && apartmentFloor >= 1 && apartmentFloor <= building.floors_count && ownerEmail && validateEmail(ownerEmail)) {
+                                            if (!creatingResident && residentEmail && validateEmail(residentEmail)) {
                                                 e.currentTarget.style.background = "#3b82f6";
                                                 e.currentTarget.style.transform = "translateY(0)";
                                                 e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
                                             }
                                         }}
                                     >
-                                        {creatingApartment ? "Creating..." : "Create Apartment"}
+                                        {creatingResident ? "Adding..." : "Add Resident"}
                                     </button>
                                     <button 
                                         onClick={() => {
-                                            setShowApartmentModal(false);
-                                            setApartmentName("");
-                                            setApartmentFloor(1);
-                                            setOwnerEmail("");
+                                            setShowResidentModal(false);
+                                            setResidentEmail("");
                                         }}
                                         style={{
                                             padding: "14px 28px",
@@ -772,4 +731,3 @@ export default function Building() {
         </div>
     );
 }
-

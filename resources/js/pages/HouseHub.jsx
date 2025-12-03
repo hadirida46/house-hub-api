@@ -24,6 +24,11 @@ export default function HouseHub() {
     const [buildingName, setBuildingName] = useState("");
     const [buildingFloorsCount, setBuildingFloorsCount] = useState(1);
     const [creatingBuilding, setCreatingBuilding] = useState(false);
+    const [roles, setRoles] = useState([]);
+    const [showRoleModal, setShowRoleModal] = useState(false);
+    const [roleEmail, setRoleEmail] = useState("");
+    const [roleName, setRoleName] = useState("committee_member");
+    const [creatingRole, setCreatingRole] = useState(false);
     const locationRef = useRef(null);
     const navigate = useNavigate();
 
@@ -41,6 +46,7 @@ export default function HouseHub() {
         });
         fetchHouseHub();
         fetchBuildings();
+        fetchRoles();
     }, []);
 
     const fetchHouseHub = async () => {
@@ -173,6 +179,37 @@ export default function HouseHub() {
         }
     };
 
+    const fetchRoles = async () => {
+        try {
+            const res = await api.get(`/roles/show/${id}`);
+            console.log("Roles API response:", res.data);
+            
+            // Handle different response structures
+            let rolesList = [];
+            if (Array.isArray(res.data)) {
+                rolesList = res.data;
+            } else if (res.data && Array.isArray(res.data.users_with_roles)) {
+                rolesList = res.data.users_with_roles;
+            } else if (res.data && res.data.data && Array.isArray(res.data.data)) {
+                rolesList = res.data.data;
+            } else if (res.data && res.data.data && Array.isArray(res.data.data.users_with_roles)) {
+                rolesList = res.data.data.users_with_roles;
+            }
+            
+            console.log("Parsed roles list:", rolesList);
+            setRoles(rolesList);
+        } catch (err) {
+            console.error("Error fetching roles:", err);
+            console.error("Error response:", err.response?.data);
+            setRoles([]);
+        }
+    };
+
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
     const createBuilding = async () => {
         if (!buildingName || !buildingFloorsCount || buildingFloorsCount < 1) {
             alert("Please enter a building name and a valid number of floors (at least 1).");
@@ -196,6 +233,57 @@ export default function HouseHub() {
             alert(JSON.stringify(err.response?.data || err.message));
         } finally {
             setCreatingBuilding(false);
+        }
+    };
+
+    const createRole = async () => {
+        if (!roleEmail) {
+            alert("Please enter an email address.");
+            return;
+        }
+
+        if (!validateEmail(roleEmail)) {
+            alert("Please enter a valid email address (format: something@example.com).");
+            return;
+        }
+
+        if (!roleName) {
+            alert("Please select a role.");
+            return;
+        }
+
+        setCreatingRole(true);
+        try {
+            const res = await api.post("/roles/store", {
+                househub_id: parseInt(id),
+                email: roleEmail,
+                name: roleName
+            });
+            console.log("Create role response:", res.data);
+            setShowRoleModal(false);
+            setRoleEmail("");
+            setRoleName("committee_member");
+            await fetchRoles();
+            alert(res.data.message || "Invitation sent successfully!");
+        } catch (err) {
+            console.error("Error creating role:", err.response?.data || err.message);
+            alert(JSON.stringify(err.response?.data || err.message));
+        } finally {
+            setCreatingRole(false);
+        }
+    };
+
+    const deleteRole = async (roleId) => {
+        if (!window.confirm("Are you sure you want to remove this role?")) {
+            return;
+        }
+        try {
+            await api.delete(`/roles/destroy/${roleId}`);
+            alert("Role removed successfully.");
+            await fetchRoles();
+        } catch (err) {
+            console.error("Error deleting role:", err.response?.data || err.message);
+            alert(JSON.stringify(err.response?.data || err.message));
         }
     };
 
@@ -642,6 +730,132 @@ export default function HouseHub() {
                     )}
                 </div>
 
+                {/* Roles Section */}
+                <div style={{ 
+                    background: "#fff", 
+                    borderRadius: "16px", 
+                    padding: "32px", 
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                    border: "1px solid #f0f0f0",
+                    marginTop: "32px"
+                }}>
+                    <div style={{ marginBottom: "24px", paddingBottom: "20px", borderBottom: "2px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+                        <div>
+                            <h2 style={{ margin: 0, color: "#1f2937", fontSize: "1.75rem", fontWeight: "700", letterSpacing: "-0.3px" }}>Roles & Members</h2>
+                            <p style={{ margin: "8px 0 0 0", color: "#6b7280", fontSize: "0.9375rem" }}>
+                                {roles.length === 0 ? "No roles assigned in this HouseHub" : `${roles.length} role${roles.length !== 1 ? 's' : ''} assigned`}
+                            </p>
+                        </div>
+                        <button 
+                            onClick={() => setShowRoleModal(true)}
+                            style={{ 
+                                padding: "12px 24px", 
+                                background: "#3b82f6", 
+                                color: "#fff", 
+                                border: "none", 
+                                borderRadius: "10px", 
+                                cursor: "pointer",
+                                fontWeight: "600",
+                                fontSize: "0.9375rem",
+                                transition: "all 0.2s",
+                                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                                whiteSpace: "nowrap"
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "#2563eb";
+                                e.currentTarget.style.transform = "translateY(-2px)";
+                                e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "#3b82f6";
+                                e.currentTarget.style.transform = "translateY(0)";
+                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                            }}
+                        >
+                            + Add Role
+                        </button>
+                    </div>
+                    {roles.length === 0 ? (
+                        <div style={{ 
+                            padding: "60px 40px", 
+                            textAlign: "center", 
+                            color: "#6b7280",
+                            background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)",
+                            borderRadius: "12px",
+                            border: "2px dashed #e5e7eb"
+                        }}>
+                            <div style={{ fontSize: "3rem", marginBottom: "16px", opacity: 0.5 }}>👥</div>
+                            <p style={{ margin: 0, fontSize: "1.125rem", fontWeight: "500" }}>No roles found</p>
+                            <p style={{ margin: "8px 0 0 0", fontSize: "0.9375rem", opacity: 0.8 }}>Roles will appear here once they are assigned to users</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px" }}>
+                            {roles.map(r => (
+                                <div 
+                                    key={r.role_id || r.id} 
+                                    style={{ 
+                                        padding: "24px", 
+                                        background: "#f9fafb", 
+                                        borderRadius: "12px", 
+                                        border: "2px solid #e5e7eb",
+                                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                        position: "relative"
+                                    }}
+                                >
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
+                                        <div style={{ flex: 1 }}>
+                                            <h4 style={{ margin: "0 0 8px 0", color: "#3b82f6", fontSize: "1.25rem", fontWeight: "700" }}>
+                                                {r.user?.name || r.user?.email || `User ${r.user?.id || ''}`}
+                                            </h4>
+                                            <div style={{ 
+                                                display: "inline-block",
+                                                padding: "4px 12px",
+                                                background: "#dbeafe",
+                                                color: "#1e40af",
+                                                borderRadius: "6px",
+                                                fontSize: "0.8125rem",
+                                                fontWeight: "600",
+                                                textTransform: "capitalize"
+                                            }}>
+                                                {r.role || r.name}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => deleteRole(r.role_id || r.id)}
+                                            style={{
+                                                padding: "6px 12px",
+                                                background: "#ef4444",
+                                                color: "#fff",
+                                                border: "none",
+                                                borderRadius: "6px",
+                                                cursor: "pointer",
+                                                fontWeight: "600",
+                                                fontSize: "0.8125rem",
+                                                transition: "all 0.2s"
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = "#dc2626";
+                                                e.currentTarget.style.transform = "scale(1.05)";
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = "#ef4444";
+                                                e.currentTarget.style.transform = "scale(1)";
+                                            }}
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                    {r.user?.email && (
+                                        <p style={{ margin: "8px 0 0 0", color: "#6b7280", fontSize: "0.9375rem", lineHeight: "1.6" }}>
+                                            {r.user.email}
+                                        </p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 {/* Create Building Modal */}
                 {showBuildingModal && (
                     <div style={{
@@ -789,6 +1003,198 @@ export default function HouseHub() {
                                             setShowBuildingModal(false);
                                             setBuildingName("");
                                             setBuildingFloorsCount(1);
+                                        }}
+                                        style={{
+                                            padding: "14px 28px",
+                                            background: "#f3f4f6",
+                                            color: "#374151",
+                                            border: "none",
+                                            borderRadius: "10px",
+                                            cursor: "pointer",
+                                            fontWeight: "600",
+                                            fontSize: "1rem",
+                                            transition: "all 0.2s"
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = "#e5e7eb";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = "#f3f4f6";
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Create Role Modal */}
+                {showRoleModal && (
+                    <div style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        background: "rgba(0,0,0,0.55)",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        backdropFilter: "blur(3px)",
+                        zIndex: 1000
+                    }}>
+                        <div style={{
+                            position: "relative",
+                            background: "#fff",
+                            padding: "32px",
+                            borderRadius: "16px",
+                            width: "100%",
+                            maxWidth: "480px",
+                            boxShadow: "0 8px 25px rgba(0,0,0,0.15)"
+                        }}>
+                            <button 
+                                onClick={() => {
+                                    setShowRoleModal(false);
+                                    setRoleEmail("");
+                                    setRoleName("committee_member");
+                                }}
+                                style={{ 
+                                    position: "absolute", 
+                                    top: "16px", 
+                                    right: "16px", 
+                                    background: "transparent", 
+                                    border: "none", 
+                                    fontSize: "1.5rem", 
+                                    cursor: "pointer", 
+                                    color: "#666",
+                                    width: "32px",
+                                    height: "32px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderRadius: "8px",
+                                    transition: "all 0.2s"
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = "#f3f4f6";
+                                    e.currentTarget.style.color = "#333";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "transparent";
+                                    e.currentTarget.style.color = "#666";
+                                }}
+                            >
+                                ×
+                            </button>
+
+                            <h2 style={{ marginBottom: "24px", color: "#3b82f6", fontWeight: "700", fontSize: "1.5rem" }}>Add Role</h2>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                                <div>
+                                    <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9375rem", color: "#374151", fontWeight: "600" }}>User Email *</label>
+                                    <input 
+                                        type="email"
+                                        placeholder="user@example.com" 
+                                        value={roleEmail} 
+                                        onChange={(e) => setRoleEmail(e.target.value)}
+                                        style={{
+                                            width: "100%",
+                                            padding: "12px 16px",
+                                            marginBottom: 0,
+                                            border: roleEmail && !validateEmail(roleEmail) ? "2px solid #ef4444" : "2px solid #e5e7eb",
+                                            borderRadius: "10px",
+                                            fontSize: "1rem",
+                                            boxSizing: "border-box",
+                                            outline: "none",
+                                            transition: "all 0.2s"
+                                        }}
+                                        onFocus={(e) => e.currentTarget.style.borderColor = roleEmail && !validateEmail(roleEmail) ? "#ef4444" : "#3b82f6"}
+                                        onBlur={(e) => e.currentTarget.style.borderColor = roleEmail && !validateEmail(roleEmail) ? "#ef4444" : "#e5e7eb"}
+                                    />
+                                    {roleEmail && !validateEmail(roleEmail) && (
+                                        <p style={{ margin: "8px 0 0 0", fontSize: "0.8125rem", color: "#ef4444" }}>
+                                            Please enter a valid email address (format: something@example.com)
+                                        </p>
+                                    )}
+                                    {(!roleEmail || validateEmail(roleEmail)) && (
+                                        <p style={{ margin: "8px 0 0 0", fontSize: "0.8125rem", color: "#6b7280" }}>
+                                            If the user doesn't exist, they will be created and receive an invitation email.
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9375rem", color: "#374151", fontWeight: "600" }}>Role *</label>
+                                    <select
+                                        value={roleName}
+                                        onChange={(e) => setRoleName(e.target.value)}
+                                        style={{
+                                            width: "100%",
+                                            padding: "12px 16px",
+                                            marginBottom: 0,
+                                            border: "2px solid #e5e7eb",
+                                            borderRadius: "10px",
+                                            fontSize: "1rem",
+                                            boxSizing: "border-box",
+                                            outline: "none",
+                                            transition: "all 0.2s",
+                                            background: "#fff",
+                                            cursor: "pointer"
+                                        }}
+                                        onFocus={(e) => e.currentTarget.style.borderColor = "#3b82f6"}
+                                        onBlur={(e) => e.currentTarget.style.borderColor = "#e5e7eb"}
+                                    >
+                                        <option value="owner">Owner</option>
+                                        <option value="committee_member">Committee Member</option>
+                                        <option value="janitor">Janitor</option>
+                                        <option value="security">Security</option>
+                                    </select>
+                                    <p style={{ margin: "8px 0 0 0", fontSize: "0.8125rem", color: "#6b7280" }}>
+                                        Select the role to assign to this user
+                                    </p>
+                                </div>
+
+                                <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
+                                    <button 
+                                        onClick={createRole}
+                                        disabled={creatingRole || !roleEmail || !validateEmail(roleEmail) || !roleName} 
+                                        style={{
+                                            flex: 1,
+                                            padding: "14px 28px",
+                                            background: (!roleEmail || !validateEmail(roleEmail) || !roleName) ? "#d1d5db" : "#3b82f6",
+                                            color: "#fff",
+                                            border: "none",
+                                            borderRadius: "10px",
+                                            cursor: creatingRole || !roleEmail || !validateEmail(roleEmail) || !roleName ? "not-allowed" : "pointer",
+                                            fontWeight: "600",
+                                            fontSize: "1rem",
+                                            transition: "all 0.2s",
+                                            boxShadow: (!roleEmail || !validateEmail(roleEmail) || !roleName) ? "none" : "0 4px 12px rgba(59, 130, 246, 0.3)"
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!creatingRole && roleEmail && validateEmail(roleEmail) && roleName) {
+                                                e.currentTarget.style.background = "#2563eb";
+                                                e.currentTarget.style.transform = "translateY(-2px)";
+                                                e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!creatingRole && roleEmail && validateEmail(roleEmail) && roleName) {
+                                                e.currentTarget.style.background = "#3b82f6";
+                                                e.currentTarget.style.transform = "translateY(0)";
+                                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                                            }
+                                        }}
+                                    >
+                                        {creatingRole ? "Sending..." : "Send Invitation"}
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setShowRoleModal(false);
+                                            setRoleEmail("");
+                                            setRoleName("committee_member");
                                         }}
                                         style={{
                                             padding: "14px 28px",

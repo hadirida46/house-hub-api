@@ -5,6 +5,7 @@ import Dashboard from "../pages/Dashboard";
 import Profile from "../pages/Profile";
 import HouseHub from "../pages/HouseHub";
 import Building from "../pages/Building";
+import Apartment from "../pages/Apartment";
 
 export default function Router() {
     return (
@@ -15,6 +16,7 @@ export default function Router() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/househub/:id" element={<HouseHub />} />
                 <Route path="/building/:id" element={<Building />} />
+                <Route path="/apartment/:id" element={<Apartment />} />
             </Routes>
         </BrowserRouter>
     );

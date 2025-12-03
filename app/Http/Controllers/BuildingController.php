@@ -49,9 +49,18 @@ class BuildingController extends Controller
 
     public function showApartments(Building $building)
     {
-        return response()->json([
-            'apartments' => $building->apartments
-        ]);
+        try {
+            $apartments = $building->apartments()->get();
+            return response()->json([
+                'apartments' => $apartments
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching apartments: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error fetching apartments',
+                'error' => $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
