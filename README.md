@@ -1,64 +1,59 @@
-HouseHub
+# 🏡 HouseHub
 
-HouseHub is a full-stack web application built with Laravel and React for managing househubs, buildings, apartments, roles, and residents. It provides a secure authentication system, full email verification, and an intuitive admin interface to manage everything efficiently.
+**HouseHub** is a full-stack web application built with **Laravel** and **React** for managing househubs, buildings, apartments, roles, and residents. It includes secure authentication, full email verification, and an intuitive admin interface.
 
-Features
-🔐 Authentication & Security
+---
 
-User registration, login, and logout
+## 🔐 Authentication & Security
 
-Email verification on signup
+* User registration, login, and logout
+* **Email verification** on signup
+* Email becomes unverified when updated
+* Secure **SPA authentication** using Laravel Sanctum
 
-Email becomes unverified when updated
+---
 
-Secure SPA authentication using Laravel Sanctum
+## 🏢 HouseHub Management
 
-🏢 HouseHub Management
+* Create and manage **HouseHubs**
+* Assign **roles** to each HouseHub
+* Manage buildings, apartments, and residents
+* Full **CRUD** operations across all entities
 
-Create and manage HouseHubs
+---
 
-Assign roles to each HouseHub
+## 👥 Resident & Role System
 
-Manage buildings, apartments, and residents
+* Add residents to apartments
+* Manage resident information
+* Assign roles (**Admin**, **Manager**, **Resident**, etc.)
+* **Role-based access** handling
 
-Full CRUD operations across all entities
+---
 
-👥 Resident & Role System
+## 📬 Email System
 
-Add residents to apartments
+* Email verification support
+* Re-send verification email
+* Auto-send verification when email changes
 
-Manage resident information
+---
 
-Assign roles (Admin, Manager, Resident, etc.)
+## 🖥️ Frontend
 
-Role-based access handling
+* **React SPA** built with **Vite**
+* Axios for API communication
+* Uses Sanctum-protected backend APIs
+* Clean and simple UI for all CRUD actions
 
-📬 Email System
+---
 
-Email verification support
+## ⚙️ Tech Stack
 
-Re-send verification email
-
-Auto-send verification when email changes
-
-🖥️ Frontend
-
-React SPA built with Vite
-
-Axios for API communication
-
-Uses Sanctum-protected backend endpoints
-
-Clean and simple UI for all CRUD actions
-
-Tech Stack
-
-Backend: Laravel
-
-Frontend: React (Vite)
-
-Authentication: Laravel Sanctum
-
-Database: MySQL
-
-Mail: SMTP
+| Component | Technology |
+| :--- | :--- |
+| **Backend** | Laravel |
+| **Frontend** | React (Vite) |
+| **Authentication** | Laravel Sanctum |
+| **Database** | MySQL |
+| **Mail** | SMTP |
