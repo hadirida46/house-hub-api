@@ -23,6 +23,12 @@
 
 ---
 
+## 📄 ERD
+
+You can view the **Entity-Relationship Diagram (ERD)** [here](./docs/house_hub_ERD.pdf).
+
+---
+
 ## 👥 Resident & Role System
 
 * Add residents to apartments
