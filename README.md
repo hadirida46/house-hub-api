@@ -19,6 +19,7 @@
 * Assign **roles** to each HouseHub
 * Manage buildings, apartments, and residents
 * Full **CRUD** operations across all entities
+* **Announcements:** Authorized users can create announcements visible to all users related to the HouseHub on the HouseHub page
 
 ---
 
