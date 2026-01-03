@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import api from "../api/axios";
+import api, { getErrorMessage } from "../api/axios";
 import Navbar from "../components/Navbar";
+import Breadcrumb from "../components/Breadcrumb";
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function Building() {
@@ -22,6 +23,7 @@ export default function Building() {
     const [apartmentFloor, setApartmentFloor] = useState(1);
     const [ownerEmail, setOwnerEmail] = useState("");
     const [creatingApartment, setCreatingApartment] = useState(false);
+    const [houseHub, setHouseHub] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -35,6 +37,9 @@ export default function Building() {
             setUserName(userData.name || '');
             setUserEmail(userData.email || '');
             setUserPictureUrl(userData.profile_picture || null);
+        }).catch(err => {
+            console.error("Error fetching profile:", err);
+            // Error is handled by axios interceptor for 401
         });
         fetchBuilding();
         fetchApartments();
@@ -47,6 +52,16 @@ export default function Building() {
             setBuilding(bldg);
             setName(bldg?.name || '');
             setFloorsCount(bldg?.floors_count || 1);
+            
+            // Fetch HouseHub info for breadcrumb
+            if (bldg?.house_hub_id) {
+                try {
+                    const hubRes = await api.get(`/house-hub/show/${bldg.house_hub_id}`);
+                    setHouseHub(hubRes.data.househub || null);
+                } catch (err) {
+                    console.error("Error fetching househub:", err);
+                }
+            }
         } catch (err) {
             console.error("Error fetching building:", err);
             setBuilding(null);
@@ -58,9 +73,6 @@ export default function Building() {
     const fetchApartments = async () => {
         try {
             const res = await api.get(`/buildings/show/apartments/${id}`);
-            console.log("Apartments API response:", res.data);
-            console.log("Response data type:", typeof res.data);
-            console.log("Response data.apartments:", res.data?.apartments);
             
             // Handle different response structures
             let apartmentsList = [];
@@ -77,12 +89,9 @@ export default function Building() {
                 apartmentsList = Object.values(res.data.apartments);
             }
             
-            console.log("Parsed apartments list:", apartmentsList);
-            console.log("Apartments count:", apartmentsList.length);
             setApartments(apartmentsList);
         } catch (err) {
             console.error("Error fetching apartments:", err);
-            console.error("Error response:", err.response?.data);
             setApartments([]);
         }
     };
@@ -109,8 +118,8 @@ export default function Building() {
             setIsEditing(false);
             fetchBuilding();
         } catch (err) {
-            console.error(err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         } finally {
             setSaving(false);
         }
@@ -135,8 +144,8 @@ export default function Building() {
                 navigate("/dashboard");
             }
         } catch (err) {
-            console.error(err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         } finally {
             setDeleting(false);
             setShowDeleteConfirm(false);
@@ -167,7 +176,6 @@ export default function Building() {
                 floor: parseInt(apartmentFloor),
                 email: ownerEmail
             });
-            console.log("Create apartment response:", res.data);
             setShowApartmentModal(false);
             setApartmentName("");
             setApartmentFloor(1);
@@ -175,8 +183,8 @@ export default function Building() {
             // Always refetch to ensure we have the latest data
             await fetchApartments();
         } catch (err) {
-            console.error("Error creating apartment:", err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         } finally {
             setCreatingApartment(false);
         }
@@ -195,22 +203,64 @@ export default function Building() {
             <Navbar onLogout={() => { localStorage.removeItem("token"); window.location.href = "/"; }} userName={userName} userEmail={userEmail} profilePictureUrl={userPictureUrl} />
 
             <main style={{ padding: "24px 20px", maxWidth: "1200px", margin: "0 auto" }}>
+                {/* Breadcrumb */}
+                <Breadcrumb items={[
+                    { label: "Dashboard", href: "/dashboard" },
+                    ...(houseHub ? [{ label: houseHub.name, href: `/househub/${houseHub.id}` }] : []),
+                    { label: building.name || "Building" }
+                ]} />
+
+                {/* Page Type Indicator */}
+                <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "6px 14px",
+                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    fontSize: "0.8125rem",
+                    fontWeight: "600",
+                    marginBottom: "20px",
+                    boxShadow: "0 2px 8px rgba(16, 185, 129, 0.2)"
+                }}>
+                    <span>🏢</span>
+                    <span>BUILDING</span>
+                </div>
+
                 {/* Building Header Card */}
                 <div style={{ 
-                    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", 
+                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", 
                     borderRadius: "20px", 
                     padding: "40px", 
                     marginBottom: "32px",
                     color: "#fff",
-                    boxShadow: "0 20px 40px rgba(59, 130, 246, 0.15)",
+                    boxShadow: "0 20px 40px rgba(16, 185, 129, 0.15)",
                     position: "relative",
                     overflow: "hidden"
                 }}>
                     <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "200px", height: "200px", background: "rgba(255,255,255,0.1)", borderRadius: "50%", filter: "blur(60px)" }}></div>
+                    <div style={{ position: "absolute", bottom: "-30px", left: "-30px", width: "150px", height: "150px", background: "rgba(255,255,255,0.08)", borderRadius: "50%", filter: "blur(50px)" }}></div>
                     <div style={{ position: "relative", zIndex: 1 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "20px" }}>
                             <div style={{ flex: 1, minWidth: "300px" }}>
-                                <h1 style={{ margin: "0 0 12px 0", fontSize: "2.5rem", fontWeight: "700", letterSpacing: "-0.5px" }}>{building.name || "Building"}</h1>
+                                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+                                    <div style={{
+                                        width: "56px",
+                                        height: "56px",
+                                        borderRadius: "14px",
+                                        background: "rgba(255,255,255,0.2)",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: "1.75rem",
+                                        backdropFilter: "blur(10px)",
+                                        border: "1px solid rgba(255,255,255,0.3)"
+                                    }}>
+                                        🏢
+                                    </div>
+                                    <h1 style={{ margin: 0, fontSize: "2.5rem", fontWeight: "700", letterSpacing: "-0.5px" }}>{building.name || "Building"}</h1>
+                                </div>
                                 <div style={{ display: "flex", gap: "32px", flexWrap: "wrap", marginTop: "24px" }}>
                                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                                         <span style={{ opacity: 0.85, fontSize: "0.875rem", fontWeight: "500" }}>Floors</span>
@@ -332,7 +382,7 @@ export default function Building() {
                                     transition: "all 0.2s",
                                     outline: "none"
                                 }}
-                                onFocus={(e) => isEditing && (e.currentTarget.style.borderColor = "#3b82f6")}
+                                onFocus={(e) => isEditing && (e.currentTarget.style.borderColor = "#10b981")}
                                 onBlur={(e) => isEditing && (e.currentTarget.style.borderColor = "#e5e7eb")}
                             />
                         </div>
@@ -358,7 +408,7 @@ export default function Building() {
                                     transition: "all 0.2s",
                                     outline: "none"
                                 }}
-                                onFocus={(e) => isEditing && (e.currentTarget.style.borderColor = "#3b82f6")}
+                                onFocus={(e) => isEditing && (e.currentTarget.style.borderColor = "#10b981")}
                                 onBlur={(e) => isEditing && (e.currentTarget.style.borderColor = "#e5e7eb")}
                             />
                         </div>
@@ -370,7 +420,7 @@ export default function Building() {
                                     style={{ 
                                         flex: 1,
                                         padding: "14px 28px", 
-                                        background: saving || !name || !floorsCount || floorsCount < 1 ? "#d1d5db" : "#3b82f6", 
+                                        background: saving || !name || !floorsCount || floorsCount < 1 ? "#d1d5db" : "#10b981", 
                                         color: "#fff", 
                                         border: "none", 
                                         borderRadius: "10px", 
@@ -378,20 +428,20 @@ export default function Building() {
                                         fontWeight: "600",
                                         fontSize: "1rem",
                                         transition: "all 0.2s",
-                                        boxShadow: saving || !name || !floorsCount || floorsCount < 1 ? "none" : "0 4px 12px rgba(59, 130, 246, 0.3)"
+                                        boxShadow: saving || !name || !floorsCount || floorsCount < 1 ? "none" : "0 4px 12px rgba(16, 185, 129, 0.3)"
                                     }}
                                     onMouseEnter={(e) => {
                                         if (!saving && name && floorsCount && floorsCount >= 1) {
-                                            e.currentTarget.style.background = "#2563eb";
+                                            e.currentTarget.style.background = "#059669";
                                             e.currentTarget.style.transform = "translateY(-2px)";
-                                            e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                                            e.currentTarget.style.boxShadow = "0 6px 16px rgba(16, 185, 129, 0.4)";
                                         }
                                     }}
                                     onMouseLeave={(e) => {
                                         if (!saving && name && floorsCount && floorsCount >= 1) {
-                                            e.currentTarget.style.background = "#3b82f6";
+                                            e.currentTarget.style.background = "#10b981";
                                             e.currentTarget.style.transform = "translateY(0)";
-                                            e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                                            e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.3)";
                                         }
                                     }}
                                 >
@@ -432,7 +482,7 @@ export default function Building() {
                                     style={{ 
                                         width: "100%",
                                         padding: "14px 28px", 
-                                        background: "#3b82f6", 
+                                        background: "#10b981", 
                                         color: "#fff", 
                                         border: "none", 
                                         borderRadius: "10px", 
@@ -440,17 +490,17 @@ export default function Building() {
                                         fontWeight: "600",
                                         fontSize: "1rem",
                                         transition: "all 0.2s",
-                                        boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)"
+                                        boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)"
                                     }}
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.background = "#2563eb";
                                         e.currentTarget.style.transform = "translateY(-2px)";
-                                        e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                                        e.currentTarget.style.boxShadow = "0 6px 16px rgba(16, 185, 129, 0.4)";
                                     }}
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.background = "#3b82f6";
                                         e.currentTarget.style.transform = "translateY(0)";
-                                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.3)";
                                     }}
                                 >
                                     Edit Details
@@ -479,7 +529,7 @@ export default function Building() {
                             onClick={() => setShowApartmentModal(true)}
                             style={{ 
                                 padding: "12px 24px", 
-                                background: "#3b82f6", 
+                                background: "#10b981", 
                                 color: "#fff", 
                                 border: "none", 
                                 borderRadius: "10px", 
@@ -487,18 +537,18 @@ export default function Building() {
                                 fontWeight: "600",
                                 fontSize: "0.9375rem",
                                 transition: "all 0.2s",
-                                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                                        boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
                                 whiteSpace: "nowrap"
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.background = "#2563eb";
                                 e.currentTarget.style.transform = "translateY(-2px)";
-                                e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                                e.currentTarget.style.boxShadow = "0 6px 16px rgba(16, 185, 129, 0.4)";
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.background = "#3b82f6";
                                 e.currentTarget.style.transform = "translateY(0)";
-                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.3)";
                             }}
                         >
                             + Create Apartment
@@ -533,8 +583,8 @@ export default function Building() {
                                     }}
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.background = "#fff";
-                                        e.currentTarget.style.borderColor = "#3b82f6";
-                                        e.currentTarget.style.boxShadow = "0 8px 24px rgba(59, 130, 246, 0.12)";
+                                        e.currentTarget.style.borderColor = "#10b981";
+                                        e.currentTarget.style.boxShadow = "0 8px 24px rgba(16, 185, 129, 0.12)";
                                         e.currentTarget.style.transform = "translateY(-4px)";
                                     }}
                                     onMouseLeave={(e) => {
@@ -544,7 +594,7 @@ export default function Building() {
                                         e.currentTarget.style.transform = "translateY(0)";
                                     }}
                                 >
-                                    <h4 style={{ margin: "0 0 12px 0", color: "#3b82f6", fontSize: "1.25rem", fontWeight: "700" }}>{a.name || `Apartment ${a.id}`}</h4>
+                                    <h4 style={{ margin: "0 0 12px 0", color: "#10b981", fontSize: "1.25rem", fontWeight: "700" }}>{a.name || `Apartment ${a.id}`}</h4>
                                     {(a.floor || a.floor_number) && (
                                         <p style={{ margin: "0 0 12px 0", color: "#6b7280", fontSize: "0.9375rem", lineHeight: "1.6" }}>Floor: {a.floor || a.floor_number}</p>
                                     )}
@@ -614,7 +664,7 @@ export default function Building() {
                                 ×
                             </button>
 
-                            <h2 style={{ marginBottom: "24px", color: "#3b82f6", fontWeight: "700", fontSize: "1.5rem" }}>Create Apartment</h2>
+                            <h2 style={{ marginBottom: "24px", color: "#10b981", fontWeight: "700", fontSize: "1.5rem" }}>Create Apartment</h2>
 
                             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                                 <div>
@@ -634,7 +684,7 @@ export default function Building() {
                                             outline: "none",
                                             transition: "all 0.2s"
                                         }}
-                                        onFocus={(e) => e.currentTarget.style.borderColor = "#3b82f6"}
+                                        onFocus={(e) => e.currentTarget.style.borderColor = "#10b981"}
                                         onBlur={(e) => e.currentTarget.style.borderColor = "#e5e7eb"}
                                     />
                                 </div>
@@ -664,7 +714,7 @@ export default function Building() {
                                             outline: "none",
                                             transition: "all 0.2s"
                                         }}
-                                        onFocus={(e) => e.currentTarget.style.borderColor = "#3b82f6"}
+                                        onFocus={(e) => e.currentTarget.style.borderColor = "#10b981"}
                                         onBlur={(e) => e.currentTarget.style.borderColor = "#e5e7eb"}
                                     />
                                 </div>
@@ -687,7 +737,7 @@ export default function Building() {
                                             outline: "none",
                                             transition: "all 0.2s"
                                         }}
-                                        onFocus={(e) => e.currentTarget.style.borderColor = ownerEmail && !validateEmail(ownerEmail) ? "#ef4444" : "#3b82f6"}
+                                        onFocus={(e) => e.currentTarget.style.borderColor = ownerEmail && !validateEmail(ownerEmail) ? "#ef4444" : "#10b981"}
                                         onBlur={(e) => e.currentTarget.style.borderColor = ownerEmail && !validateEmail(ownerEmail) ? "#ef4444" : "#e5e7eb"}
                                     />
                                     {ownerEmail && !validateEmail(ownerEmail) && (
@@ -717,20 +767,20 @@ export default function Building() {
                                             fontWeight: "600",
                                             fontSize: "1rem",
                                             transition: "all 0.2s",
-                                            boxShadow: (!apartmentName || !apartmentFloor || apartmentFloor < 1 || apartmentFloor > building.floors_count || !ownerEmail || !validateEmail(ownerEmail)) ? "none" : "0 4px 12px rgba(59, 130, 246, 0.3)"
+                                            boxShadow: (!apartmentName || !apartmentFloor || apartmentFloor < 1 || apartmentFloor > building.floors_count || !ownerEmail || !validateEmail(ownerEmail)) ? "none" : "0 4px 12px rgba(16, 185, 129, 0.3)"
                                         }}
                                         onMouseEnter={(e) => {
                                             if (!creatingApartment && apartmentName && apartmentFloor && apartmentFloor >= 1 && apartmentFloor <= building.floors_count && ownerEmail && validateEmail(ownerEmail)) {
-                                                e.currentTarget.style.background = "#2563eb";
+                                                e.currentTarget.style.background = "#059669";
                                                 e.currentTarget.style.transform = "translateY(-2px)";
-                                                e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                                                e.currentTarget.style.boxShadow = "0 6px 16px rgba(16, 185, 129, 0.4)";
                                             }
                                         }}
                                         onMouseLeave={(e) => {
                                             if (!creatingApartment && apartmentName && apartmentFloor && apartmentFloor >= 1 && apartmentFloor <= building.floors_count && ownerEmail && validateEmail(ownerEmail)) {
-                                                e.currentTarget.style.background = "#3b82f6";
+                                                e.currentTarget.style.background = "#10b981";
                                                 e.currentTarget.style.transform = "translateY(0)";
-                                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.3)";
                                             }
                                         }}
                                     >

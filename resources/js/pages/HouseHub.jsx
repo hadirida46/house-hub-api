@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import api from "../api/axios";
+import api, { getErrorMessage } from "../api/axios";
 import Navbar from "../components/Navbar";
+import Breadcrumb from "../components/Breadcrumb";
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function HouseHub() {
@@ -29,6 +30,12 @@ export default function HouseHub() {
     const [roleEmail, setRoleEmail] = useState("");
     const [roleName, setRoleName] = useState("committee_member");
     const [creatingRole, setCreatingRole] = useState(false);
+    const [announcements, setAnnouncements] = useState([]);
+    const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+    const [announcementTitle, setAnnouncementTitle] = useState("");
+    const [announcementBody, setAnnouncementBody] = useState("");
+    const [creatingAnnouncement, setCreatingAnnouncement] = useState(false);
+    const [canCreateAnnouncement, setCanCreateAnnouncement] = useState(false);
     const locationRef = useRef(null);
     const navigate = useNavigate();
 
@@ -43,11 +50,26 @@ export default function HouseHub() {
             setUserName(userData.name || '');
             setUserEmail(userData.email || '');
             setUserPictureUrl(userData.profile_picture || null);
+        }).catch(err => {
+            console.error("Error fetching profile:", err);
+            // Error is handled by axios interceptor for 401
         });
         fetchHouseHub();
         fetchBuildings();
         fetchRoles();
+        fetchAnnouncements();
     }, []);
+
+    // Check if user can create announcements when roles or userEmail changes
+    useEffect(() => {
+        if (roles.length > 0 && userEmail) {
+            const currentUserRole = roles.find(r => 
+                r.user?.email === userEmail && 
+                (r.role === 'owner' || r.role === 'committee_member')
+            );
+            setCanCreateAnnouncement(!!currentUserRole);
+        }
+    }, [roles, userEmail]);
 
     const fetchHouseHub = async () => {
         try {
@@ -103,7 +125,7 @@ export default function HouseHub() {
             const data = await res.json();
             setLocationResults(data);
         } catch (e) {
-            console.log(e);
+            console.error("Location search error:", e);
         }
     };
 
@@ -139,8 +161,8 @@ export default function HouseHub() {
             setIsEditing(false);
             fetchHouseHub();
         } catch (err) {
-            console.error(err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         } finally {
             setSaving(false);
         }
@@ -171,8 +193,8 @@ export default function HouseHub() {
             alert("HouseHub deleted successfully.");
             navigate("/dashboard");
         } catch (err) {
-            console.error(err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         } finally {
             setDeleting(false);
             setShowDeleteConfirm(false);
@@ -182,7 +204,6 @@ export default function HouseHub() {
     const fetchRoles = async () => {
         try {
             const res = await api.get(`/roles/show/${id}`);
-            console.log("Roles API response:", res.data);
             
             // Handle different response structures
             let rolesList = [];
@@ -196,11 +217,9 @@ export default function HouseHub() {
                 rolesList = res.data.data.users_with_roles;
             }
             
-            console.log("Parsed roles list:", rolesList);
             setRoles(rolesList);
         } catch (err) {
             console.error("Error fetching roles:", err);
-            console.error("Error response:", err.response?.data);
             setRoles([]);
         }
     };
@@ -229,8 +248,8 @@ export default function HouseHub() {
             setBuildingFloorsCount(1);
             fetchBuildings();
         } catch (err) {
-            console.error("Error creating building:", err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         } finally {
             setCreatingBuilding(false);
         }
@@ -259,15 +278,14 @@ export default function HouseHub() {
                 email: roleEmail,
                 name: roleName
             });
-            console.log("Create role response:", res.data);
             setShowRoleModal(false);
             setRoleEmail("");
             setRoleName("committee_member");
             await fetchRoles();
             alert(res.data.message || "Invitation sent successfully!");
         } catch (err) {
-            console.error("Error creating role:", err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         } finally {
             setCreatingRole(false);
         }
@@ -282,8 +300,61 @@ export default function HouseHub() {
             alert("Role removed successfully.");
             await fetchRoles();
         } catch (err) {
-            console.error("Error deleting role:", err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
+        }
+    };
+
+    const fetchAnnouncements = async () => {
+        try {
+            const res = await api.get(`/househubs/${id}/announcements`);
+            
+            // Handle different response structures
+            let announcementsList = [];
+            if (Array.isArray(res.data)) {
+                announcementsList = res.data;
+            } else if (res.data && Array.isArray(res.data.announcements)) {
+                announcementsList = res.data.announcements;
+            } else if (res.data && res.data.data && Array.isArray(res.data.data)) {
+                announcementsList = res.data.data;
+            } else if (res.data && res.data.data && Array.isArray(res.data.data.announcements)) {
+                announcementsList = res.data.data.announcements;
+            }
+            
+            setAnnouncements(announcementsList);
+        } catch (err) {
+            console.error("Error fetching announcements:", err);
+            setAnnouncements([]);
+        }
+    };
+
+    const createAnnouncement = async () => {
+        if (!announcementTitle || !announcementTitle.trim()) {
+            alert("Please enter a title for the announcement.");
+            return;
+        }
+
+        if (!announcementBody || !announcementBody.trim()) {
+            alert("Please enter the announcement content.");
+            return;
+        }
+
+        setCreatingAnnouncement(true);
+        try {
+            const res = await api.post(`/househubs/${id}/announcements`, {
+                title: announcementTitle.trim(),
+                body: announcementBody.trim()
+            });
+            setShowAnnouncementModal(false);
+            setAnnouncementTitle("");
+            setAnnouncementBody("");
+            await fetchAnnouncements();
+            alert(res.data.message || "Announcement created successfully!");
+        } catch (err) {
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
+        } finally {
+            setCreatingAnnouncement(false);
         }
     };
 
@@ -300,6 +371,30 @@ export default function HouseHub() {
             <Navbar onLogout={() => { localStorage.removeItem("token"); window.location.href = "/"; }} userName={userName} userEmail={userEmail} profilePictureUrl={userPictureUrl} />
 
             <main style={{ padding: "24px 20px", maxWidth: "1200px", margin: "0 auto" }}>
+                {/* Breadcrumb */}
+                <Breadcrumb items={[
+                    { label: "Dashboard", href: "/dashboard" },
+                    { label: houseHub.name || "HouseHub" }
+                ]} />
+
+                {/* Page Type Indicator */}
+                <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "6px 14px",
+                    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    fontSize: "0.8125rem",
+                    fontWeight: "600",
+                    marginBottom: "20px",
+                    boxShadow: "0 2px 8px rgba(59, 130, 246, 0.2)"
+                }}>
+                    <span>🏘️</span>
+                    <span>HOUSEHUB</span>
+                </div>
+
                 {/* HouseHub Header Card */}
                 <div style={{ 
                     background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", 
@@ -312,11 +407,28 @@ export default function HouseHub() {
                     overflow: "hidden"
                 }}>
                     <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "200px", height: "200px", background: "rgba(255,255,255,0.1)", borderRadius: "50%", filter: "blur(60px)" }}></div>
+                    <div style={{ position: "absolute", bottom: "-30px", left: "-30px", width: "150px", height: "150px", background: "rgba(255,255,255,0.08)", borderRadius: "50%", filter: "blur(50px)" }}></div>
                     <div style={{ position: "relative", zIndex: 1 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "20px" }}>
                             <div style={{ flex: 1, minWidth: "300px" }}>
-                                <h1 style={{ margin: "0 0 12px 0", fontSize: "2.5rem", fontWeight: "700", letterSpacing: "-0.5px" }}>{houseHub.name || "HouseHub"}</h1>
-                                <p style={{ margin: "0 0 24px 0", opacity: 0.95, fontSize: "1.125rem", lineHeight: "1.6" }}>{houseHub.description || "No description provided"}</p>
+                                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+                                    <div style={{
+                                        width: "56px",
+                                        height: "56px",
+                                        borderRadius: "14px",
+                                        background: "rgba(255,255,255,0.2)",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: "1.75rem",
+                                        backdropFilter: "blur(10px)",
+                                        border: "1px solid rgba(255,255,255,0.3)"
+                                    }}>
+                                        🏘️
+                                    </div>
+                                    <h1 style={{ margin: 0, fontSize: "2.5rem", fontWeight: "700", letterSpacing: "-0.5px" }}>{houseHub.name || "HouseHub"}</h1>
+                                </div>
+                                <p style={{ margin: "0 0 24px 0", opacity: 0.95, fontSize: "1.125rem", lineHeight: "1.6", paddingLeft: "68px" }}>{houseHub.description || "No description provided"}</p>
                                 <div style={{ display: "flex", gap: "32px", flexWrap: "wrap" }}>
                                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                                         <span style={{ opacity: 0.85, fontSize: "0.875rem", fontWeight: "500" }}>Location</span>
@@ -856,6 +968,130 @@ export default function HouseHub() {
                     )}
                 </div>
 
+                {/* Announcements Section */}
+                <div style={{ 
+                    background: "#fff", 
+                    borderRadius: "16px", 
+                    padding: "32px", 
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                    border: "1px solid #f0f0f0",
+                    marginTop: "32px"
+                }}>
+                    <div style={{ marginBottom: "24px", paddingBottom: "20px", borderBottom: "2px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+                        <div>
+                            <h2 style={{ margin: 0, color: "#1f2937", fontSize: "1.75rem", fontWeight: "700", letterSpacing: "-0.3px" }}>Announcements</h2>
+                            <p style={{ margin: "8px 0 0 0", color: "#6b7280", fontSize: "0.9375rem" }}>
+                                {announcements.length === 0 ? "No announcements yet" : `${announcements.length} announcement${announcements.length !== 1 ? 's' : ''}`}
+                            </p>
+                        </div>
+                        {canCreateAnnouncement && (
+                            <button 
+                                onClick={() => setShowAnnouncementModal(true)}
+                                style={{ 
+                                    padding: "12px 24px", 
+                                    background: "#3b82f6", 
+                                    color: "#fff", 
+                                    border: "none", 
+                                    borderRadius: "10px", 
+                                    cursor: "pointer",
+                                    fontWeight: "600",
+                                    fontSize: "0.9375rem",
+                                    transition: "all 0.2s",
+                                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                                    whiteSpace: "nowrap"
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = "#2563eb";
+                                    e.currentTarget.style.transform = "translateY(-2px)";
+                                    e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "#3b82f6";
+                                    e.currentTarget.style.transform = "translateY(0)";
+                                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                                }}
+                            >
+                                + Create Announcement
+                            </button>
+                        )}
+                    </div>
+                    {announcements.length === 0 ? (
+                        <div style={{ 
+                            padding: "60px 40px", 
+                            textAlign: "center", 
+                            color: "#6b7280",
+                            background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)",
+                            borderRadius: "12px",
+                            border: "2px dashed #e5e7eb"
+                        }}>
+                            <div style={{ fontSize: "3rem", marginBottom: "16px", opacity: 0.5 }}>📢</div>
+                            <p style={{ margin: 0, fontSize: "1.125rem", fontWeight: "500" }}>No announcements yet</p>
+                            <p style={{ margin: "8px 0 0 0", fontSize: "0.9375rem", opacity: 0.8 }}>Announcements will appear here once they are created</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                            {announcements.map(announcement => (
+                                <div 
+                                    key={announcement.id} 
+                                    style={{ 
+                                        padding: "24px", 
+                                        background: "#f9fafb", 
+                                        borderRadius: "12px", 
+                                        border: "2px solid #e5e7eb",
+                                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = "#fff";
+                                        e.currentTarget.style.borderColor = "#3b82f6";
+                                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.1)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = "#f9fafb";
+                                        e.currentTarget.style.borderColor = "#e5e7eb";
+                                        e.currentTarget.style.boxShadow = "none";
+                                    }}
+                                >
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", flexWrap: "wrap", gap: "12px" }}>
+                                        <div style={{ flex: 1 }}>
+                                            <h3 style={{ margin: "0 0 8px 0", color: "#1f2937", fontSize: "1.25rem", fontWeight: "700" }}>
+                                                {announcement.title}
+                                            </h3>
+                                            {announcement.user && (
+                                                <p style={{ margin: "0 0 4px 0", color: "#6b7280", fontSize: "0.875rem" }}>
+                                                    By {announcement.user.name || announcement.user.email || "Unknown"}
+                                                </p>
+                                            )}
+                                            {announcement.created_at && (
+                                                <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.8125rem" }}>
+                                                    {new Date(announcement.created_at).toLocaleDateString('en-US', { 
+                                                        year: 'numeric', 
+                                                        month: 'long', 
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div style={{ 
+                                        marginTop: "16px", 
+                                        paddingTop: "16px", 
+                                        borderTop: "1px solid #e5e7eb",
+                                        color: "#374151",
+                                        fontSize: "0.9375rem",
+                                        lineHeight: "1.7",
+                                        whiteSpace: "pre-wrap",
+                                        wordBreak: "break-word"
+                                    }}>
+                                        {announcement.body}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
                 {/* Create Building Modal */}
                 {showBuildingModal && (
                     <div style={{
@@ -1195,6 +1431,190 @@ export default function HouseHub() {
                                             setShowRoleModal(false);
                                             setRoleEmail("");
                                             setRoleName("committee_member");
+                                        }}
+                                        style={{
+                                            padding: "14px 28px",
+                                            background: "#f3f4f6",
+                                            color: "#374151",
+                                            border: "none",
+                                            borderRadius: "10px",
+                                            cursor: "pointer",
+                                            fontWeight: "600",
+                                            fontSize: "1rem",
+                                            transition: "all 0.2s"
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = "#e5e7eb";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = "#f3f4f6";
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Create Announcement Modal */}
+                {showAnnouncementModal && (
+                    <div style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        background: "rgba(0,0,0,0.55)",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        backdropFilter: "blur(3px)",
+                        zIndex: 1000
+                    }}>
+                        <div style={{
+                            position: "relative",
+                            background: "#fff",
+                            padding: "32px",
+                            borderRadius: "16px",
+                            width: "100%",
+                            maxWidth: "600px",
+                            maxHeight: "90vh",
+                            overflowY: "auto",
+                            boxShadow: "0 8px 25px rgba(0,0,0,0.15)"
+                        }}>
+                            <button 
+                                onClick={() => {
+                                    setShowAnnouncementModal(false);
+                                    setAnnouncementTitle("");
+                                    setAnnouncementBody("");
+                                }}
+                                style={{ 
+                                    position: "absolute", 
+                                    top: "16px", 
+                                    right: "16px", 
+                                    background: "transparent", 
+                                    border: "none", 
+                                    fontSize: "1.5rem", 
+                                    cursor: "pointer", 
+                                    color: "#666",
+                                    width: "32px",
+                                    height: "32px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderRadius: "8px",
+                                    transition: "all 0.2s"
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = "#f3f4f6";
+                                    e.currentTarget.style.color = "#333";
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "transparent";
+                                    e.currentTarget.style.color = "#666";
+                                }}
+                            >
+                                ×
+                            </button>
+
+                            <h2 style={{ marginBottom: "24px", color: "#3b82f6", fontWeight: "700", fontSize: "1.5rem" }}>Create Announcement</h2>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                                <div>
+                                    <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9375rem", color: "#374151", fontWeight: "600" }}>Title *</label>
+                                    <input 
+                                        placeholder="Announcement title" 
+                                        value={announcementTitle} 
+                                        onChange={(e) => setAnnouncementTitle(e.target.value)}
+                                        maxLength={255}
+                                        style={{
+                                            width: "100%",
+                                            padding: "12px 16px",
+                                            marginBottom: 0,
+                                            border: "2px solid #e5e7eb",
+                                            borderRadius: "10px",
+                                            fontSize: "1rem",
+                                            boxSizing: "border-box",
+                                            outline: "none",
+                                            transition: "all 0.2s"
+                                        }}
+                                        onFocus={(e) => e.currentTarget.style.borderColor = "#3b82f6"}
+                                        onBlur={(e) => e.currentTarget.style.borderColor = "#e5e7eb"}
+                                    />
+                                    <p style={{ margin: "8px 0 0 0", fontSize: "0.8125rem", color: "#6b7280" }}>
+                                        {announcementTitle.length}/255 characters
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label style={{ display: "block", marginBottom: "8px", fontSize: "0.9375rem", color: "#374151", fontWeight: "600" }}>Content *</label>
+                                    <textarea 
+                                        placeholder="Announcement content..." 
+                                        value={announcementBody} 
+                                        onChange={(e) => setAnnouncementBody(e.target.value)}
+                                        rows={8}
+                                        style={{
+                                            width: "100%",
+                                            padding: "12px 16px",
+                                            marginBottom: 0,
+                                            border: "2px solid #e5e7eb",
+                                            borderRadius: "10px",
+                                            fontSize: "1rem",
+                                            boxSizing: "border-box",
+                                            outline: "none",
+                                            transition: "all 0.2s",
+                                            resize: "vertical",
+                                            fontFamily: "inherit"
+                                        }}
+                                        onFocus={(e) => e.currentTarget.style.borderColor = "#3b82f6"}
+                                        onBlur={(e) => e.currentTarget.style.borderColor = "#e5e7eb"}
+                                    />
+                                    <p style={{ margin: "8px 0 0 0", fontSize: "0.8125rem", color: "#6b7280" }}>
+                                        Enter the announcement details
+                                    </p>
+                                </div>
+
+                                <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
+                                    <button 
+                                        onClick={createAnnouncement}
+                                        disabled={creatingAnnouncement || !announcementTitle.trim() || !announcementBody.trim()} 
+                                        style={{
+                                            flex: 1,
+                                            padding: "14px 28px",
+                                            background: (!announcementTitle.trim() || !announcementBody.trim()) ? "#d1d5db" : "#3b82f6",
+                                            color: "#fff",
+                                            border: "none",
+                                            borderRadius: "10px",
+                                            cursor: creatingAnnouncement || !announcementTitle.trim() || !announcementBody.trim() ? "not-allowed" : "pointer",
+                                            fontWeight: "600",
+                                            fontSize: "1rem",
+                                            transition: "all 0.2s",
+                                            boxShadow: (!announcementTitle.trim() || !announcementBody.trim()) ? "none" : "0 4px 12px rgba(59, 130, 246, 0.3)"
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (!creatingAnnouncement && announcementTitle.trim() && announcementBody.trim()) {
+                                                e.currentTarget.style.background = "#2563eb";
+                                                e.currentTarget.style.transform = "translateY(-2px)";
+                                                e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (!creatingAnnouncement && announcementTitle.trim() && announcementBody.trim()) {
+                                                e.currentTarget.style.background = "#3b82f6";
+                                                e.currentTarget.style.transform = "translateY(0)";
+                                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                                            }
+                                        }}
+                                    >
+                                        {creatingAnnouncement ? "Creating..." : "Create Announcement"}
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setShowAnnouncementModal(false);
+                                            setAnnouncementTitle("");
+                                            setAnnouncementBody("");
                                         }}
                                         style={{
                                             padding: "14px 28px",

@@ -7,6 +7,7 @@ use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\HouseHubController;
+use App\Http\Controllers\AnnouncementController;
 
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
@@ -71,4 +72,11 @@ Route::middleware('auth:sanctum')->prefix('/roles')->group(function () {
     Route::post('/store', [RoleController::class, 'store']);
     Route::get('/show/{househub_id}', [RoleController::class, 'showRoles']);
     Route::delete('/destroy/{role}', [RoleController::class, 'destroyRole']);
+});
+
+
+//                      ANNOUNCEMENTS ROUTES
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('househubs/{houseHub}/announcements', [AnnouncementController::class, 'show']);
+    Route::post('househubs/{houseHub}/announcements', [AnnouncementController::class, 'store']);
 });

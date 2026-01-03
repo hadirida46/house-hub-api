@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from "react";
-import api from "../api/axios";
+import api, { getErrorMessage } from "../api/axios";
 import Navbar from "../components/Navbar";
 import {useNavigate} from "react-router-dom";
 
@@ -103,8 +103,8 @@ export default function Dashboard() {
             setSelectedLocation(null);
             setRole("owner");
         } catch (err) {
-            console.error("Error creating househub:", err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         } finally {
             setCreating(false);
         }

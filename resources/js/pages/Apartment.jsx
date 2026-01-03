@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import api from "../api/axios";
+import api, { getErrorMessage } from "../api/axios";
 import Navbar from "../components/Navbar";
+import Breadcrumb from "../components/Breadcrumb";
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function Apartment() {
@@ -20,6 +21,8 @@ export default function Apartment() {
     const [showResidentModal, setShowResidentModal] = useState(false);
     const [residentEmail, setResidentEmail] = useState("");
     const [creatingResident, setCreatingResident] = useState(false);
+    const [building, setBuildingInfo] = useState(null);
+    const [houseHub, setHouseHub] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -33,6 +36,9 @@ export default function Apartment() {
             setUserName(userData.name || '');
             setUserEmail(userData.email || '');
             setUserPictureUrl(userData.profile_picture || null);
+        }).catch(err => {
+            console.error("Error fetching profile:", err);
+            // Error is handled by axios interceptor for 401
         });
         fetchApartment();
         fetchResidents();
@@ -45,6 +51,26 @@ export default function Apartment() {
             setApartment(apt);
             setName(apt?.name || '');
             setFloor(apt?.floor || 1);
+            
+            // Fetch Building and HouseHub info for breadcrumb
+            if (apt?.building_id) {
+                try {
+                    const buildingRes = await api.get(`/buildings/show/${apt.building_id}`);
+                    const bldg = buildingRes.data.building || null;
+                    setBuildingInfo(bldg);
+                    
+                    if (bldg?.house_hub_id) {
+                        try {
+                            const hubRes = await api.get(`/house-hub/show/${bldg.house_hub_id}`);
+                            setHouseHub(hubRes.data.househub || null);
+                        } catch (err) {
+                            console.error("Error fetching househub:", err);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error fetching building:", err);
+                }
+            }
         } catch (err) {
             console.error("Error fetching apartment:", err);
             setApartment(null);
@@ -56,7 +82,6 @@ export default function Apartment() {
     const fetchResidents = async () => {
         try {
             const res = await api.get(`/apartments/show/residents/${id}`);
-            console.log("Residents API response:", res.data);
             
             // Handle different response structures
             let residentsList = [];
@@ -72,11 +97,9 @@ export default function Apartment() {
                 residentsList = Object.values(res.data.residents);
             }
             
-            console.log("Parsed residents list:", residentsList);
             setResidents(residentsList);
         } catch (err) {
             console.error("Error fetching residents:", err);
-            console.error("Error response:", err.response?.data);
             setResidents([]);
         }
     };
@@ -104,8 +127,8 @@ export default function Apartment() {
             setIsEditing(false);
             fetchApartment();
         } catch (err) {
-            console.error(err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         } finally {
             setSaving(false);
         }
@@ -129,8 +152,8 @@ export default function Apartment() {
                 navigate("/dashboard");
             }
         } catch (err) {
-            console.error(err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         } finally {
             setDeleting(false);
             setShowDeleteConfirm(false);
@@ -154,13 +177,12 @@ export default function Apartment() {
                 apartment_id: parseInt(id),
                 email: residentEmail
             });
-            console.log("Create resident response:", res.data);
             setShowResidentModal(false);
             setResidentEmail("");
             await fetchResidents();
         } catch (err) {
-            console.error("Error creating resident:", err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         } finally {
             setCreatingResident(false);
         }
@@ -175,8 +197,8 @@ export default function Apartment() {
             alert("Resident removed successfully.");
             await fetchResidents();
         } catch (err) {
-            console.error("Error deleting resident:", err.response?.data || err.message);
-            alert(JSON.stringify(err.response?.data || err.message));
+            const errorMessage = getErrorMessage(err);
+            alert(errorMessage);
         }
     };
 
@@ -193,22 +215,65 @@ export default function Apartment() {
             <Navbar onLogout={() => { localStorage.removeItem("token"); window.location.href = "/"; }} userName={userName} userEmail={userEmail} profilePictureUrl={userPictureUrl} />
 
             <main style={{ padding: "24px 20px", maxWidth: "1200px", margin: "0 auto" }}>
+                {/* Breadcrumb */}
+                <Breadcrumb items={[
+                    { label: "Dashboard", href: "/dashboard" },
+                    ...(houseHub ? [{ label: houseHub.name, href: `/househub/${houseHub.id}` }] : []),
+                    ...(building ? [{ label: building.name, href: `/building/${building.id}` }] : []),
+                    { label: apartment.name || "Apartment" }
+                ]} />
+
+                {/* Page Type Indicator */}
+                <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "6px 14px",
+                    background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    fontSize: "0.8125rem",
+                    fontWeight: "600",
+                    marginBottom: "20px",
+                    boxShadow: "0 2px 8px rgba(245, 158, 11, 0.2)"
+                }}>
+                    <span>🏠</span>
+                    <span>APARTMENT</span>
+                </div>
+
                 {/* Apartment Header Card */}
                 <div style={{ 
-                    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", 
+                    background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", 
                     borderRadius: "20px", 
                     padding: "40px", 
                     marginBottom: "32px",
                     color: "#fff",
-                    boxShadow: "0 20px 40px rgba(59, 130, 246, 0.15)",
+                    boxShadow: "0 20px 40px rgba(245, 158, 11, 0.15)",
                     position: "relative",
                     overflow: "hidden"
                 }}>
                     <div style={{ position: "absolute", top: "-50px", right: "-50px", width: "200px", height: "200px", background: "rgba(255,255,255,0.1)", borderRadius: "50%", filter: "blur(60px)" }}></div>
+                    <div style={{ position: "absolute", bottom: "-30px", left: "-30px", width: "150px", height: "150px", background: "rgba(255,255,255,0.08)", borderRadius: "50%", filter: "blur(50px)" }}></div>
                     <div style={{ position: "relative", zIndex: 1 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "20px" }}>
                             <div style={{ flex: 1, minWidth: "300px" }}>
-                                <h1 style={{ margin: "0 0 12px 0", fontSize: "2.5rem", fontWeight: "700", letterSpacing: "-0.5px" }}>{apartment.name || "Apartment"}</h1>
+                                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+                                    <div style={{
+                                        width: "56px",
+                                        height: "56px",
+                                        borderRadius: "14px",
+                                        background: "rgba(255,255,255,0.2)",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: "1.75rem",
+                                        backdropFilter: "blur(10px)",
+                                        border: "1px solid rgba(255,255,255,0.3)"
+                                    }}>
+                                        🏠
+                                    </div>
+                                    <h1 style={{ margin: 0, fontSize: "2.5rem", fontWeight: "700", letterSpacing: "-0.5px" }}>{apartment.name || "Apartment"}</h1>
+                                </div>
                                 <div style={{ display: "flex", gap: "32px", flexWrap: "wrap", marginTop: "24px" }}>
                                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                                         <span style={{ opacity: 0.85, fontSize: "0.875rem", fontWeight: "500" }}>Floor</span>
@@ -330,7 +395,7 @@ export default function Apartment() {
                                     transition: "all 0.2s",
                                     outline: "none"
                                 }}
-                                onFocus={(e) => isEditing && (e.currentTarget.style.borderColor = "#3b82f6")}
+                                onFocus={(e) => isEditing && (e.currentTarget.style.borderColor = "#f59e0b")}
                                 onBlur={(e) => isEditing && (e.currentTarget.style.borderColor = "#e5e7eb")}
                             />
                         </div>
@@ -356,7 +421,7 @@ export default function Apartment() {
                                     transition: "all 0.2s",
                                     outline: "none"
                                 }}
-                                onFocus={(e) => isEditing && (e.currentTarget.style.borderColor = "#3b82f6")}
+                                onFocus={(e) => isEditing && (e.currentTarget.style.borderColor = "#f59e0b")}
                                 onBlur={(e) => isEditing && (e.currentTarget.style.borderColor = "#e5e7eb")}
                             />
                         </div>
@@ -368,7 +433,7 @@ export default function Apartment() {
                                     style={{ 
                                         flex: 1,
                                         padding: "14px 28px", 
-                                        background: saving || !name || !floor || floor < 1 ? "#d1d5db" : "#3b82f6", 
+                                        background: saving || !name || !floor || floor < 1 ? "#d1d5db" : "#f59e0b", 
                                         color: "#fff", 
                                         border: "none", 
                                         borderRadius: "10px", 
@@ -376,20 +441,20 @@ export default function Apartment() {
                                         fontWeight: "600",
                                         fontSize: "1rem",
                                         transition: "all 0.2s",
-                                        boxShadow: saving || !name || !floor || floor < 1 ? "none" : "0 4px 12px rgba(59, 130, 246, 0.3)"
+                                        boxShadow: saving || !name || !floor || floor < 1 ? "none" : "0 4px 12px rgba(245, 158, 11, 0.3)"
                                     }}
                                     onMouseEnter={(e) => {
                                         if (!saving && name && floor && floor >= 1) {
-                                            e.currentTarget.style.background = "#2563eb";
+                                            e.currentTarget.style.background = "#d97706";
                                             e.currentTarget.style.transform = "translateY(-2px)";
-                                            e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                                            e.currentTarget.style.boxShadow = "0 6px 16px rgba(245, 158, 11, 0.4)";
                                         }
                                     }}
                                     onMouseLeave={(e) => {
                                         if (!saving && name && floor && floor >= 1) {
-                                            e.currentTarget.style.background = "#3b82f6";
+                                            e.currentTarget.style.background = "#f59e0b";
                                             e.currentTarget.style.transform = "translateY(0)";
-                                            e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                                            e.currentTarget.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.3)";
                                         }
                                     }}
                                 >
@@ -430,7 +495,7 @@ export default function Apartment() {
                                     style={{ 
                                         width: "100%",
                                         padding: "14px 28px", 
-                                        background: "#3b82f6", 
+                                        background: "#f59e0b", 
                                         color: "#fff", 
                                         border: "none", 
                                         borderRadius: "10px", 
@@ -438,17 +503,17 @@ export default function Apartment() {
                                         fontWeight: "600",
                                         fontSize: "1rem",
                                         transition: "all 0.2s",
-                                        boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)"
+                                        boxShadow: "0 4px 12px rgba(245, 158, 11, 0.3)"
                                     }}
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.background = "#2563eb";
                                         e.currentTarget.style.transform = "translateY(-2px)";
-                                        e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                                        e.currentTarget.style.boxShadow = "0 6px 16px rgba(245, 158, 11, 0.4)";
                                     }}
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.background = "#3b82f6";
                                         e.currentTarget.style.transform = "translateY(0)";
-                                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.3)";
                                     }}
                                 >
                                     Edit Details
@@ -477,7 +542,7 @@ export default function Apartment() {
                             onClick={() => setShowResidentModal(true)}
                             style={{ 
                                 padding: "12px 24px", 
-                                background: "#3b82f6", 
+                                background: "#f59e0b", 
                                 color: "#fff", 
                                 border: "none", 
                                 borderRadius: "10px", 
@@ -485,18 +550,18 @@ export default function Apartment() {
                                 fontWeight: "600",
                                 fontSize: "0.9375rem",
                                 transition: "all 0.2s",
-                                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                                        boxShadow: "0 4px 12px rgba(245, 158, 11, 0.3)",
                                 whiteSpace: "nowrap"
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.background = "#2563eb";
                                 e.currentTarget.style.transform = "translateY(-2px)";
-                                e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                                e.currentTarget.style.boxShadow = "0 6px 16px rgba(245, 158, 11, 0.4)";
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.background = "#3b82f6";
                                 e.currentTarget.style.transform = "translateY(0)";
-                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.3)";
                             }}
                         >
                             + Add Resident
@@ -530,7 +595,7 @@ export default function Apartment() {
                                     }}
                                 >
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-                                        <h4 style={{ margin: 0, color: "#3b82f6", fontSize: "1.25rem", fontWeight: "700" }}>
+                                        <h4 style={{ margin: 0, color: "#f59e0b", fontSize: "1.25rem", fontWeight: "700" }}>
                                             {r.user?.name || r.user?.email || `Resident ${r.id}`}
                                         </h4>
                                         <button
@@ -627,7 +692,7 @@ export default function Apartment() {
                                 ×
                             </button>
 
-                            <h2 style={{ marginBottom: "24px", color: "#3b82f6", fontWeight: "700", fontSize: "1.5rem" }}>Add Resident</h2>
+                            <h2 style={{ marginBottom: "24px", color: "#f59e0b", fontWeight: "700", fontSize: "1.5rem" }}>Add Resident</h2>
 
                             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                                 <div>
@@ -648,7 +713,7 @@ export default function Apartment() {
                                             outline: "none",
                                             transition: "all 0.2s"
                                         }}
-                                        onFocus={(e) => e.currentTarget.style.borderColor = residentEmail && !validateEmail(residentEmail) ? "#ef4444" : "#3b82f6"}
+                                        onFocus={(e) => e.currentTarget.style.borderColor = residentEmail && !validateEmail(residentEmail) ? "#ef4444" : "#f59e0b"}
                                         onBlur={(e) => e.currentTarget.style.borderColor = residentEmail && !validateEmail(residentEmail) ? "#ef4444" : "#e5e7eb"}
                                     />
                                     {residentEmail && !validateEmail(residentEmail) && (
@@ -678,20 +743,20 @@ export default function Apartment() {
                                             fontWeight: "600",
                                             fontSize: "1rem",
                                             transition: "all 0.2s",
-                                            boxShadow: (!residentEmail || !validateEmail(residentEmail)) ? "none" : "0 4px 12px rgba(59, 130, 246, 0.3)"
+                                            boxShadow: (!residentEmail || !validateEmail(residentEmail)) ? "none" : "0 4px 12px rgba(245, 158, 11, 0.3)"
                                         }}
                                         onMouseEnter={(e) => {
                                             if (!creatingResident && residentEmail && validateEmail(residentEmail)) {
-                                                e.currentTarget.style.background = "#2563eb";
+                                                e.currentTarget.style.background = "#d97706";
                                                 e.currentTarget.style.transform = "translateY(-2px)";
-                                                e.currentTarget.style.boxShadow = "0 6px 16px rgba(59, 130, 246, 0.4)";
+                                                e.currentTarget.style.boxShadow = "0 6px 16px rgba(245, 158, 11, 0.4)";
                                             }
                                         }}
                                         onMouseLeave={(e) => {
                                             if (!creatingResident && residentEmail && validateEmail(residentEmail)) {
-                                                e.currentTarget.style.background = "#3b82f6";
+                                                e.currentTarget.style.background = "#f59e0b";
                                                 e.currentTarget.style.transform = "translateY(0)";
-                                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(59, 130, 246, 0.3)";
+                                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.3)";
                                             }
                                         }}
                                     >

@@ -37,7 +37,6 @@ export default function Profile() {
 
         api.get("/profile")
             .then((response) => {
-                // Assuming user data is nested under 'user' key from API response
                 const userData = response.data.user || response.data;
                 setName(userData.name || "");
                 setEmail(userData.email || "");
